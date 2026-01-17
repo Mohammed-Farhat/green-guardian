@@ -220,4 +220,36 @@ log/
 *.onnx
 
 # Gazebo cache
-~/.gazebo/
+.gazebo/
+
+
+*.db3
+*.bag
+rosbag2_*/
+
+*.rviz~
+
+id_rsa*
+id_ed25519*
+*.pem
+*.key
+
+build/
+install/
+log/
+
+.colcon/
+*.log
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+*.msg~
+*.srv~
+*.action~
+
+maps/*.pgm
+maps/*.yaml
