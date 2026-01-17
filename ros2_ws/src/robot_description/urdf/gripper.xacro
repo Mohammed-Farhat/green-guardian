@@ -1,0 +1,262 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!--
+    Macro: gripper arm + end-effector
+    Usage: <xacro:gripper parent="base_link"/>
+    Requires: constants.xacro + materials.xacro + macros.xacro (inertial_box)
+  -->
+  <xacro:macro name="gripper" params="parent">
+
+    <!-- ===================== -->
+    <!-- Arm pedestal + mount  -->
+    <!-- ===================== -->
+    <link name="arm_pedestal_link">
+      <visual>
+        <geometry><cylinder radius="0.05" length="0.10"/></geometry>
+        <material name="gray"/>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="0.05" length="0.10"/></geometry>
+      </collision>
+    </link>
+
+    <joint name="arm_pedestal_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="arm_pedestal_link"/>
+      <origin xyz="${arm_base_x} 0 0.05" rpy="0 0 0"/>
+    </joint>
+
+    <link name="arm_base_link">
+      <visual>
+        <geometry><cylinder radius="0.045" length="0.05"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="0.045" length="0.05"/></geometry>
+      </collision>
+      <xacro:inertial_box m="2.0" ixx="0.01" iyy="0.01" izz="0.01"/>
+    </link>
+
+    <joint name="arm_mount_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="arm_base_link"/>
+      <origin xyz="${arm_base_x} 0 ${arm_base_z}" rpy="0 0 0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Joint 1: Shoulder yaw -->
+    <!-- ===================== -->
+    <link name="shoulder_link">
+      <visual>
+        <geometry><cylinder radius="0.035" length="${L1}"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="0.035" length="${L1}"/></geometry>
+      </collision>
+      <xacro:inertial_box m="1.0" ixx="0.005" iyy="0.005" izz="0.005"/>
+    </link>
+
+    <joint name="joint1_shoulder_yaw" type="revolute">
+      <parent link="arm_base_link"/>
+      <child link="shoulder_link"/>
+      <origin xyz="0 0 0.03" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="-3.14" upper="3.14" effort="10" velocity="2.0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Joint 2: Shoulder pitch -->
+    <!-- ===================== -->
+    <link name="upper_arm_link">
+      <visual>
+        <origin xyz="${L2_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${L2} 0.05 0.05"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <origin xyz="${L2_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${L2} 0.05 0.05"/></geometry>
+      </collision>
+      <xacro:inertial_box m="1.5" ixx="0.02" iyy="0.02" izz="0.02"/>
+    </link>
+
+    <joint name="joint2_shoulder_pitch" type="revolute">
+      <parent link="shoulder_link"/>
+      <child link="upper_arm_link"/>
+      <origin xyz="0 0 ${L1/2}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-1.57" upper="1.57" effort="10" velocity="2.0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Joint 3: Elbow pitch  -->
+    <!-- ===================== -->
+    <link name="forearm_link">
+      <visual>
+        <origin xyz="${L3_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${L3} 0.04 0.04"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <origin xyz="${L3_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${L3} 0.04 0.04"/></geometry>
+      </collision>
+      <xacro:inertial_box m="1.2" ixx="0.015" iyy="0.015" izz="0.015"/>
+    </link>
+
+    <joint name="joint3_elbow_pitch" type="revolute">
+      <parent link="upper_arm_link"/>
+      <child link="forearm_link"/>
+      <origin xyz="${L2} 0 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-2.0" upper="2.0" effort="10" velocity="2.0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Joint 4: Wrist yaw    -->
+    <!-- ===================== -->
+    <link name="wrist1_link">
+      <visual>
+        <geometry><cylinder radius="0.028" length="${L4}"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="0.028" length="${L4}"/></geometry>
+      </collision>
+      <xacro:inertial_box m="0.6" ixx="0.004" iyy="0.004" izz="0.004"/>
+    </link>
+
+    <joint name="joint4_wrist_yaw" type="revolute">
+      <parent link="forearm_link"/>
+      <child link="wrist1_link"/>
+      <origin xyz="${L3} 0 0" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-3.14" upper="3.14" effort="6" velocity="3.0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Joint 5: Wrist pitch  -->
+    <!-- ===================== -->
+    <link name="wrist2_link">
+      <visual>
+        <geometry><cylinder radius="0.026" length="0.06"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="0.026" length="0.06"/></geometry>
+      </collision>
+      <xacro:inertial_box m="0.5" ixx="0.003" iyy="0.003" izz="0.003"/>
+    </link>
+
+    <joint name="joint5_wrist_pitch" type="revolute">
+      <parent link="wrist1_link"/>
+      <child link="wrist2_link"/>
+      <origin xyz="0 0 ${L4/2}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="-2.0" upper="2.0" effort="6" velocity="3.0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Joint 6: Wrist roll   -->
+    <!-- ===================== -->
+    <link name="tool0_link">
+      <visual>
+        <geometry><cylinder radius="0.024" length="0.05"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="0.024" length="0.05"/></geometry>
+      </collision>
+      <xacro:inertial_box m="0.4" ixx="0.002" iyy="0.002" izz="0.002"/>
+    </link>
+
+    <joint name="joint6_wrist_roll" type="revolute">
+      <parent link="wrist2_link"/>
+      <child link="tool0_link"/>
+      <origin xyz="0 0 0.03" rpy="0 0 0"/>
+      <axis xyz="1 0 0"/>
+      <limit lower="-3.14" upper="3.14" effort="6" velocity="4.0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Gripper body          -->
+    <!-- ===================== -->
+    <link name="gripper_link">
+      <visual>
+        <origin xyz="${tool_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${tool_len} 0.06 0.04"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <origin xyz="${tool_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${tool_len} 0.06 0.04"/></geometry>
+      </collision>
+      <xacro:inertial_box m="0.6" ixx="0.004" iyy="0.004" izz="0.004"/>
+    </link>
+
+    <joint name="gripper_mount_joint" type="fixed">
+      <parent link="tool0_link"/>
+      <child link="gripper_link"/>
+      <origin xyz="0.03 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- Fingers (prismatic)   -->
+    <!-- ===================== -->
+    <link name="left_finger_link">
+      <visual>
+        <origin xyz="${finger_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${finger_len} 0.012 0.02"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <origin xyz="${finger_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${finger_len} 0.012 0.02"/></geometry>
+      </collision>
+      <xacro:inertial_box m="0.2" ixx="0.001" iyy="0.001" izz="0.001"/>
+    </link>
+
+    <link name="right_finger_link">
+      <visual>
+        <origin xyz="${finger_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${finger_len} 0.012 0.02"/></geometry>
+        <material name="blue"/>
+      </visual>
+      <collision>
+        <origin xyz="${finger_half} 0 0" rpy="0 0 0"/>
+        <geometry><box size="${finger_len} 0.012 0.02"/></geometry>
+      </collision>
+      <xacro:inertial_box m="0.2" ixx="0.001" iyy="0.001" izz="0.001"/>
+    </link>
+
+    <joint name="left_finger_joint" type="prismatic">
+      <parent link="gripper_link"/>
+      <child link="left_finger_link"/>
+      <origin xyz="${tool_len} 0.03 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <limit lower="0.0" upper="0.03" effort="5" velocity="0.2"/>
+    </joint>
+
+    <joint name="right_finger_joint" type="prismatic">
+      <parent link="gripper_link"/>
+      <child link="right_finger_link"/>
+      <origin xyz="${tool_len} -0.03 0" rpy="0 0 0"/>
+      <axis xyz="0 -1 0"/>
+      <limit lower="0.0" upper="0.03" effort="5" velocity="0.2"/>
+    </joint>
+
+    <!-- ===================== -->
+    <!-- End effector frame    -->
+    <!-- ===================== -->
+    <link name="ee_link"/>
+    <joint name="ee_fixed_joint" type="fixed">
+      <parent link="gripper_link"/>
+      <child link="ee_link"/>
+      <origin xyz="${tool_len + finger_len} 0 0" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="wheels" params="parent">
+
+    <xacro:gg_wheel_link name="front_left_wheel_link"/>
+    <xacro:gg_wheel_link name="front_right_wheel_link"/>
+    <xacro:gg_wheel_link name="rear_left_wheel_link"/>
+    <xacro:gg_wheel_link name="rear_right_wheel_link"/>
+
+    <joint name="front_left_wheel_joint" type="continuous">
+      <parent link="${parent}"/>
+      <child link="front_left_wheel_link"/>
+      <origin xyz="${wheel_x} ${wheel_y} ${wheel_z}" rpy="1.5708 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+
+    <joint name="front_right_wheel_joint" type="continuous">
+      <parent link="${parent}"/>
+      <child link="front_right_wheel_link"/>
+      <origin xyz="${wheel_x} -${wheel_y} ${wheel_z}" rpy="1.5708 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+
+    <joint name="rear_left_wheel_joint" type="continuous">
+      <parent link="${parent}"/>
+      <child link="rear_left_wheel_link"/>
+      <origin xyz="-${wheel_x} ${wheel_y} ${wheel_z}" rpy="1.5708 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+
+    <joint name="rear_right_wheel_joint" type="continuous">
+      <parent link="${parent}"/>
+      <child link="rear_right_wheel_link"/>
+      <origin xyz="-${wheel_x} -${wheel_y} ${wheel_z}" rpy="1.5708 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

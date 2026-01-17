@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find realsense2_description)/urdf/_d435.urdf.xacro"/>
+
+  <xacro:macro name="depth_camera" params="parent">
+    <xacro:sensor_d435 parent="${parent}" name="d435">
+      <origin xyz="0.36 0 0.05" rpy="0 0 0"/>
+    </xacro:sensor_d435>
+  </xacro:macro>
+
+</robot>
