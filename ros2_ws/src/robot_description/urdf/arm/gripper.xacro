@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="simple_gripper" params="parent prefix xyz:='0 0 0' rpy:='0 0 0'">
+
+    <xacro:property name="gripper_base_length" value="0.06"/>
+    <xacro:property name="gripper_base_width"  value="0.07"/>
+    <xacro:property name="gripper_base_height" value="0.04"/>
+
+    <xacro:property name="finger_length" value="0.10"/>
+    <xacro:property name="finger_width"  value="0.02"/>
+    <xacro:property name="finger_height" value="0.02"/>
+    <xacro:property name="finger_gap" value="0.05"/>
+
+    <link name="${prefix}base_link">
+      <visual>
+        <origin xyz="0 0 ${gripper_base_height/2.0}" rpy="0 0 0"/>
+        <geometry><box size="${gripper_base_length} ${gripper_base_width} ${gripper_base_height}"/></geometry>
+        <material name="gripper_gray"><color rgba="0.6 0.6 0.6 1.0"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${gripper_base_height/2.0}" rpy="0 0 0"/>
+        <geometry><box size="${gripper_base_length} ${gripper_base_width} ${gripper_base_height}"/></geometry>
+      </collision>
+    </link>
+
+    <joint name="${prefix}mount_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${prefix}base_link"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <link name="${prefix}left_finger">
+      <visual>
+        <origin xyz="${(gripper_base_length/2.0 + finger_length/2.0)} ${(finger_gap/2.0 + finger_width/2.0)} ${gripper_base_height/2.0}" rpy="0 0 0"/>
+        <geometry><box size="${finger_length} ${finger_width} ${finger_height}"/></geometry>
+        <material name="gripper_dark"><color rgba="0.2 0.2 0.2 1.0"/></material>
+      </visual>
+      <collision>
+        <origin xyz="${(gripper_base_length/2.0 + finger_length/2.0)} ${(finger_gap/2.0 + finger_width/2.0)} ${gripper_base_height/2.0}" rpy="0 0 0"/>
+        <geometry><box size="${finger_length} ${finger_width} ${finger_height}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}left_finger_joint" type="fixed">
+      <parent link="${prefix}base_link"/>
+      <child link="${prefix}left_finger"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="${prefix}right_finger">
+      <visual>
+        <origin xyz="${(gripper_base_length/2.0 + finger_length/2.0)} ${-(finger_gap/2.0 + finger_width/2.0)} ${gripper_base_height/2.0}" rpy="0 0 0"/>
+        <geometry><box size="${finger_length} ${finger_width} ${finger_height}"/></geometry>
+        <material name="gripper_dark"/>
+      </visual>
+      <collision>
+        <origin xyz="${(gripper_base_length/2.0 + finger_length/2.0)} ${-(finger_gap/2.0 + finger_width/2.0)} ${gripper_base_height/2.0}" rpy="0 0 0"/>
+        <geometry><box size="${finger_length} ${finger_width} ${finger_height}"/></geometry>
+      </collision>
+    </link>
+    <joint name="${prefix}right_finger_joint" type="fixed">
+      <parent link="${prefix}base_link"/>
+      <child link="${prefix}right_finger"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

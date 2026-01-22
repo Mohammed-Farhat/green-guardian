@@ -1,63 +1,40 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <link name="camera_link">
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><box size="0.09 0.025 0.025"/></geometry>
-      <material name="gg_gray"/>
-    </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry><box size="0.09 0.025 0.025"/></geometry>
-    </collision>
-    <inertial>
-      <mass value="${cam_mass}"/>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="0.0001" ixy="0.0" ixz="0.0" iyy="0.0001" iyz="0.0" izz="0.0001"/>
-    </inertial>
-  </link>
 
-  <joint name="camera_joint" type="fixed">
-    <parent link="base_link"/>
-    <child link="camera_link"/>
-    <origin xyz="${cam_x} ${cam_y} ${cam_z}" rpy="0 0 0"/>
-  </joint>
+  <xacro:property name="base_length" value="0.75"/>
+  <xacro:property name="base_height" value="0.20"/>
 
-  <link name="camera_optical_link"/>
-  <joint name="camera_optical_joint" type="fixed">
-    <parent link="camera_link"/>
-    <child link="camera_optical_link"/>
-    <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
-  </joint>
+  <xacro:property name="depth_camera_width"  value="0.12"/>
+  <xacro:property name="depth_camera_depth"  value="0.04"/>
+  <xacro:property name="depth_camera_height" value="0.04"/>
 
-  <gazebo reference="camera_link">
-    <sensor name="depth_camera" type="depth">
-      <pose>0 0 0 0 0 0</pose>
-      <update_rate>30</update_rate>
-      <camera>
-        <horizontal_fov>1.047</horizontal_fov>
-        <image>
-          <width>640</width>
-          <height>480</height>
-          <format>R8G8B8</format>
-        </image>
-        <clip>
-          <near>0.05</near>
-          <far>5.0</far>
-        </clip>
-      </camera>
-      <plugin name="gazebo_ros_depth_camera" filename="libgazebo_ros_depth_camera.so">
-        <ros>
-          <namespace>/</namespace>
-          <remapping>~/image_raw:=camera/image_raw</remapping>
-          <remapping>~/depth/image_raw:=camera/depth/image_raw</remapping>
-          <remapping>~/points:=camera/points</remapping>
-          <remapping>~/camera_info:=camera/camera_info</remapping>
-        </ros>
-        <frame_name>camera_optical_link</frame_name>
-        <min_depth>0.05</min_depth>
-        <max_depth>5.0</max_depth>
-      </plugin>
-    </sensor>
-  </gazebo>
+  <xacro:macro name="depth_camera" params="parent">
+    <link name="depth_camera_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${depth_camera_depth} ${depth_camera_width} ${depth_camera_height}"/>
+        </geometry>
+        <material name="sensor_black">
+          <color rgba="0.05 0.05 0.05 1.0"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${depth_camera_depth} ${depth_camera_width} ${depth_camera_height}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="depth_camera_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="depth_camera_link"/>
+      <!-- forward-front mount -->
+      <origin
+        xyz="${base_length/2.0 + depth_camera_depth/2.0 + 0.01} 0 ${base_height/2.0 - depth_camera_height/2.0}"
+        rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
 </robot>

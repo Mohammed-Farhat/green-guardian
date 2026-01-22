@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:property name="base_length" value="0.75"/>
+  <xacro:property name="base_width"  value="0.60"/>
+  <xacro:property name="base_height" value="0.20"/>
+
+  <xacro:property name="bin_gap" value="0.04"/>
+  <xacro:property name="bin_length" value="0.28"/>
+  <xacro:property name="bin_width" value="${(base_width - bin_gap)/2.0}"/>
+  <xacro:property name="bin_height" value="0.20"/>
+  <xacro:property name="bin_wall" value="0.01"/>
+  <xacro:property name="bin_floor" value="0.01"/>
+
+  <xacro:property name="bin_x" value="${-(base_length/2.0 - bin_length/2.0 - 0.03)}"/>
+  <xacro:property name="bin_y" value="${bin_width/2.0 + bin_gap/2.0}"/>
+  <xacro:property name="bin_z" value="${base_height/2.0 + bin_height/2.0}"/>
+
+  <xacro:macro name="bin" params="name x y z">
+    <link name="${name}">
+      <visual>
+        <origin xyz="0 0 ${(-bin_height/2.0 + bin_floor/2.0)}" rpy="0 0 0"/>
+        <geometry><box size="${bin_length} ${bin_width} ${bin_floor}"/></geometry>
+        <material name="bin_green"><color rgba="0.2 0.4 0.2 1.0"/></material>
+      </visual>
+
+      <!-- walls -->
+      <visual><origin xyz="${(bin_length/2.0 - bin_wall/2.0)} 0 0"/><geometry><box size="${bin_wall} ${bin_width} ${bin_height}"/></geometry><material name="bin_green"/></visual>
+      <visual><origin xyz="${-(bin_length/2.0 - bin_wall/2.0)} 0 0"/><geometry><box size="${bin_wall} ${bin_width} ${bin_height}"/></geometry><material name="bin_green"/></visual>
+      <visual><origin xyz="0 ${(bin_width/2.0 - bin_wall/2.0)} 0"/><geometry><box size="${bin_length} ${bin_wall} ${bin_height}"/></geometry><material name="bin_green"/></visual>
+      <visual><origin xyz="0 ${-(bin_width/2.0 - bin_wall/2.0)} 0"/><geometry><box size="${bin_length} ${bin_wall} ${bin_height}"/></geometry><material name="bin_green"/></visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><box size="${bin_length} ${bin_width} ${bin_height}"/></geometry>
+      </collision>
+    </link>
+
+    <joint name="${name}_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="${name}"/>
+      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:macro name="bins" params="parent">
+    <!-- parent is unused because we fix to base_link in joints (ok) -->
+    <xacro:bin name="rear_bin_left"  x="${bin_x}" y="${ bin_y}" z="${bin_z}"/>
+    <xacro:bin name="rear_bin_right" x="${bin_x}" y="${-bin_y}" z="${bin_z}"/>
+  </xacro:macro>
+
+</robot>

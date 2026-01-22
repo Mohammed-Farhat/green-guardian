@@ -1,8 +1,0 @@
-<?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <material name="gg_green"><color rgba="0.10 0.70 0.25 1.0"/></material>
-  <material name="gg_gray"><color rgba="0.60 0.60 0.60 1.0"/></material>
-  <material name="gg_black"><color rgba="0.05 0.05 0.05 1.0"/></material>
-  <material name="gg_blue"><color rgba="0.10 0.30 0.80 1.0"/></material>
-  <material name="gg_orange"><color rgba="0.95 0.55 0.10 1.0"/></material>
-</robot>
