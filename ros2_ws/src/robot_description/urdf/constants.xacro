@@ -1,53 +1,50 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Approximate dimensions (meters) -->
+  <xacro:property name="chassis_L" value="0.55"/>
+  <xacro:property name="chassis_W" value="0.45"/>
+  <xacro:property name="chassis_H" value="0.18"/>
 
-  <!-- chassis -->
-  <xacro:property name="chassis_length" value="0.70"/>
-  <xacro:property name="chassis_width"  value="0.45"/>
-  <xacro:property name="chassis_height" value="0.14"/>
+  <xacro:property name="wheel_R" value="0.10"/>
+  <xacro:property name="wheel_W" value="0.05"/>
+  <xacro:property name="wheel_mass" value="1.0"/>
 
-  <!-- wheels -->
-  <xacro:property name="wheel_radius" value="0.06"/>
-  <xacro:property name="wheel_width"  value="0.035"/>
-  <xacro:property name="wheel_x" value="0.26"/>
-  <xacro:property name="wheel_y" value="0.20"/>
-  <xacro:property name="wheel_z" value="-0.07"/>
-
-  <!-- bins -->
-  <xacro:property name="bin_length" value="0.22"/>
-  <xacro:property name="bin_width"  value="0.18"/>
-  <xacro:property name="bin_height" value="0.18"/>
-  <xacro:property name="bin_x" value="-0.18"/>
-  <xacro:property name="bin_y" value="0.11"/>
-  <xacro:property name="bin_z" value="0.13"/>
-
-  <!-- bin pedestals -->
-  <xacro:property name="bin_ped_radius" value="0.035"/>
-  <xacro:property name="bin_ped_height" value="0.10"/>
-  <xacro:property name="bin_ped_half" value="0.05"/>
-
-  <!-- lidar -->
-  <xacro:property name="lidar_x" value="0.10"/>
+  <!-- LiDAR mount -->
+  <xacro:property name="lidar_x" value="0.20"/>
+  <xacro:property name="lidar_y" value="0.00"/>
   <xacro:property name="lidar_z" value="0.22"/>
-  <xacro:property name="lidar_ped_radius" value="0.02"/>
-  <xacro:property name="lidar_ped_height" value="0.10"/>
-  <xacro:property name="lidar_ped_half" value="0.05"/>
+  <xacro:property name="lidar_mass" value="0.25"/>
 
-  <!-- arm mount -->
-  <xacro:property name="arm_base_x" value="0.30"/>
-  <xacro:property name="arm_base_z" value="0.12"/>
+  <!-- Camera mount -->
+  <xacro:property name="cam_x" value="0.18"/>
+  <xacro:property name="cam_y" value="0.00"/>
+  <xacro:property name="cam_z" value="0.26"/>
+  <xacro:property name="cam_mass" value="0.20"/>
 
-  <!-- arm dims -->
-  <xacro:property name="L1" value="0.10"/>
-  <xacro:property name="L2" value="0.18"/>
-  <xacro:property name="L3" value="0.16"/>
-  <xacro:property name="L4" value="0.08"/>
-  <xacro:property name="tool_len" value="0.10"/>
-  <xacro:property name="finger_len" value="0.08"/>
+  <!-- Bins (rear left/right) -->
+  <xacro:property name="bin_L" value="0.22"/>
+  <xacro:property name="bin_W" value="0.16"/>
+  <xacro:property name="bin_H" value="0.20"/>
+  <xacro:property name="bin_x" value="-0.18"/>
+  <xacro:property name="bin_z" value="0.20"/>
+  <xacro:property name="bin_left_y"  value="0.12"/>
+  <xacro:property name="bin_right_y" value="-0.12"/>
+  <xacro:property name="bin_mass" value="1.5"/>
 
-  <xacro:property name="L2_half" value="0.09"/>
-  <xacro:property name="L3_half" value="0.08"/>
-  <xacro:property name="tool_half" value="0.05"/>
-  <xacro:property name="finger_half" value="0.04"/>
-
+  <!-- Arm base -->
+  <xacro:property name="arm_x" value="0.12"/>
+  <xacro:property name="arm_y" value="0.00"/>
+  <xacro:property name="arm_z" value="0.22"/>
+  <xacro:property name="arm_base_height" value="0.08"/>
+  <xacro:property name="arm_link1_len" value="0.16"/>
+  <xacro:property name="arm_link2_len" value="0.16"/>
+  <xacro:property name="arm_link3_len" value="0.12"/>
+  <xacro:property name="arm_link4_len" value="0.08"/>
+  <xacro:property name="arm_link5_len" value="0.08"/>
+  <xacro:property name="arm_link6_len" value="0.06"/>
+  <xacro:property name="arm_link_mass" value="0.6"/>
+  <xacro:property name="gripper_mass" value="0.3"/>
+  <xacro:property name="finger_len" value="0.06"/>
+  <xacro:property name="finger_width" value="0.015"/>
+  <xacro:property name="finger_thickness" value="0.02"/>
 </robot>

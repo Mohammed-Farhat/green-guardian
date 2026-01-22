@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 ${chassis_H/2}" rpy="0 0 0"/>
+      <geometry><box size="${chassis_L} ${chassis_W} ${chassis_H}"/></geometry>
+      <material name="gg_green"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${chassis_H/2}" rpy="0 0 0"/>
+      <geometry><box size="${chassis_L} ${chassis_W} ${chassis_H}"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="12.0"/>
+      <origin xyz="0 0 ${chassis_H/2}" rpy="0 0 0"/>
+      <inertia ixx="0.30" ixy="0.0" ixz="0.0" iyy="0.30" iyz="0.0" izz="0.30"/>
+    </inertial>
+  </link>
+
+  <link name="top_deck_link">
+    <visual>
+      <origin xyz="0 0 ${chassis_H + 0.03}" rpy="0 0 0"/>
+      <geometry><box size="0.40 0.30 0.06"/></geometry>
+      <material name="gg_gray"/>
+    </visual>
+  </link>
+
+  <joint name="top_deck_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="top_deck_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+</robot>

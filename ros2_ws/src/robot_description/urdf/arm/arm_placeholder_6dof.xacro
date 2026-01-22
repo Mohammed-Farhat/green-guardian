@@ -1,0 +1,228 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="box_inertial" params="mass x y z">
+    <inertial>
+      <mass value="${mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${(mass * (y*y + z*z)) / 12}"
+               ixy="0.0"
+               ixz="0.0"
+               iyy="${(mass * (x*x + z*z)) / 12}"
+               iyz="0.0"
+               izz="${(mass * (x*x + y*y)) / 12}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="cylinder_inertial" params="mass r l">
+    <inertial>
+      <mass value="${mass}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${(mass * (3*r*r + l*l)) / 12}"
+               ixy="0.0"
+               ixz="0.0"
+               iyy="${(mass * (3*r*r + l*l)) / 12}"
+               iyz="0.0"
+               izz="${0.5 * mass * r * r}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:property name="shoulder_height" value="0.06"/>
+  <xacro:property name="shoulder_radius" value="0.04"/>
+  <xacro:property name="arm_link_w" value="0.05"/>
+  <xacro:property name="arm_link2_w" value="0.045"/>
+  <xacro:property name="arm_link3_w" value="0.04"/>
+  <xacro:property name="arm_link4_w" value="0.035"/>
+  <xacro:property name="arm_link5_w" value="0.03"/>
+  <xacro:property name="gripper_w" value="0.05"/>
+  <xacro:property name="gripper_h" value="0.03"/>
+  <xacro:property name="handgripper_len" value="0.06"/>
+
+  <link name="arm_base_link">
+    <visual>
+      <origin xyz="0 0 ${arm_base_height/2}" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="${arm_base_height}"/></geometry>
+      <material name="gg_black"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${arm_base_height/2}" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="${arm_base_height}"/></geometry>
+    </collision>
+    <xacro:cylinder_inertial mass="${arm_link_mass}" r="0.05" l="${arm_base_height}"/>
+  </link>
+
+  <joint name="arm_base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="arm_base_link"/>
+    <origin xyz="${arm_x} ${arm_y} ${arm_z}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="shoulder_link">
+    <visual>
+      <origin xyz="0 0 ${shoulder_height/2}" rpy="0 0 0"/>
+      <geometry><cylinder radius="${shoulder_radius}" length="${shoulder_height}"/></geometry>
+      <material name="gg_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${shoulder_height/2}" rpy="0 0 0"/>
+      <geometry><cylinder radius="${shoulder_radius}" length="${shoulder_height}"/></geometry>
+    </collision>
+    <xacro:cylinder_inertial mass="${arm_link_mass}" r="${shoulder_radius}" l="${shoulder_height}"/>
+  </link>
+
+  <joint name="shoulder_pan_joint" type="revolute">
+    <parent link="arm_base_link"/>
+    <child link="shoulder_link"/>
+    <origin xyz="0 0 ${arm_base_height}" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.1416" upper="3.1416" effort="25.0" velocity="2.0"/>
+    <dynamics damping="0.5" friction="0.0"/>
+  </joint>
+
+  <link name="upper_arm_link">
+    <visual>
+      <origin xyz="${arm_link1_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link1_len} ${arm_link_w} ${arm_link_w}"/></geometry>
+      <material name="gg_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="${arm_link1_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link1_len} ${arm_link_w} ${arm_link_w}"/></geometry>
+    </collision>
+    <xacro:box_inertial mass="${arm_link_mass}" x="${arm_link1_len}" y="${arm_link_w}" z="${arm_link_w}"/>
+  </link>
+
+  <joint name="shoulder_lift_joint" type="revolute">
+    <parent link="shoulder_link"/>
+    <child link="upper_arm_link"/>
+    <origin xyz="0 0 ${shoulder_height}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="25.0" velocity="2.0"/>
+    <dynamics damping="0.5" friction="0.0"/>
+  </joint>
+
+  <link name="forearm_link">
+    <visual>
+      <origin xyz="${arm_link2_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link2_len} ${arm_link2_w} ${arm_link2_w}"/></geometry>
+      <material name="gg_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="${arm_link2_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link2_len} ${arm_link2_w} ${arm_link2_w}"/></geometry>
+    </collision>
+    <xacro:box_inertial mass="${arm_link_mass}" x="${arm_link2_len}" y="${arm_link2_w}" z="${arm_link2_w}"/>
+  </link>
+
+  <joint name="elbow_joint" type="revolute">
+    <parent link="upper_arm_link"/>
+    <child link="forearm_link"/>
+    <origin xyz="${arm_link1_len} 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-2.3562" upper="2.3562" effort="20.0" velocity="2.0"/>
+    <dynamics damping="0.5" friction="0.0"/>
+  </joint>
+
+  <link name="wrist_1_link">
+    <visual>
+      <origin xyz="${arm_link3_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link3_len} ${arm_link3_w} ${arm_link3_w}"/></geometry>
+      <material name="gg_black"/>
+    </visual>
+    <collision>
+      <origin xyz="${arm_link3_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link3_len} ${arm_link3_w} ${arm_link3_w}"/></geometry>
+    </collision>
+    <xacro:box_inertial mass="${arm_link_mass * 0.7}" x="${arm_link3_len}" y="${arm_link3_w}" z="${arm_link3_w}"/>
+  </link>
+
+  <joint name="wrist_1_joint" type="revolute">
+    <parent link="forearm_link"/>
+    <child link="wrist_1_link"/>
+    <origin xyz="${arm_link2_len} 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.1416" upper="3.1416" effort="15.0" velocity="2.5"/>
+    <dynamics damping="0.3" friction="0.0"/>
+  </joint>
+
+  <link name="wrist_2_link">
+    <visual>
+      <origin xyz="${arm_link4_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link4_len} ${arm_link4_w} ${arm_link4_w}"/></geometry>
+      <material name="gg_black"/>
+    </visual>
+    <collision>
+      <origin xyz="${arm_link4_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link4_len} ${arm_link4_w} ${arm_link4_w}"/></geometry>
+    </collision>
+    <xacro:box_inertial mass="${arm_link_mass * 0.6}" x="${arm_link4_len}" y="${arm_link4_w}" z="${arm_link4_w}"/>
+  </link>
+
+  <joint name="wrist_2_joint" type="revolute">
+    <parent link="wrist_1_link"/>
+    <child link="wrist_2_link"/>
+    <origin xyz="${arm_link3_len} 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="-3.1416" upper="3.1416" effort="12.0" velocity="3.0"/>
+    <dynamics damping="0.3" friction="0.0"/>
+  </joint>
+
+  <link name="wrist_3_link">
+    <visual>
+      <origin xyz="${arm_link5_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link5_len} ${arm_link5_w} ${arm_link5_w}"/></geometry>
+      <material name="gg_black"/>
+    </visual>
+    <collision>
+      <origin xyz="${arm_link5_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link5_len} ${arm_link5_w} ${arm_link5_w}"/></geometry>
+    </collision>
+    <xacro:box_inertial mass="${arm_link_mass * 0.5}" x="${arm_link5_len}" y="${arm_link5_w}" z="${arm_link5_w}"/>
+  </link>
+
+  <joint name="wrist_3_joint" type="revolute">
+    <parent link="wrist_2_link"/>
+    <child link="wrist_3_link"/>
+    <origin xyz="${arm_link4_len} 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="-3.1416" upper="3.1416" effort="12.0" velocity="3.0"/>
+    <dynamics damping="0.3" friction="0.0"/>
+  </joint>
+
+  <link name="gripper_base_link">
+    <visual>
+      <origin xyz="${arm_link6_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link6_len} ${gripper_w} ${gripper_h}"/></geometry>
+      <material name="gg_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="${arm_link6_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${arm_link6_len} ${gripper_w} ${gripper_h}"/></geometry>
+    </collision>
+    <xacro:box_inertial mass="${gripper_mass}" x="${arm_link6_len}" y="${gripper_w}" z="${gripper_h}"/>
+  </link>
+
+  <joint name="gripper_base_joint" type="fixed">
+    <parent link="wrist_3_link"/>
+    <child link="gripper_base_link"/>
+    <origin xyz="${arm_link5_len} 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="handgripper0">
+    <visual>
+      <origin xyz="${handgripper_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${handgripper_len} ${gripper_w} ${gripper_h}"/></geometry>
+      <material name="gg_gray"/>
+    </visual>
+    <collision>
+      <origin xyz="${handgripper_len/2} 0 0" rpy="0 0 0"/>
+      <geometry><box size="${handgripper_len} ${gripper_w} ${gripper_h}"/></geometry>
+    </collision>
+    <xacro:box_inertial mass="${gripper_mass * 0.6}" x="${handgripper_len}" y="${gripper_w}" z="${gripper_h}"/>
+  </link>
+
+  <joint name="handgripper0_joint" type="fixed">
+    <parent link="gripper_base_link"/>
+    <child link="handgripper0"/>
+    <origin xyz="${arm_link6_len} 0 0" rpy="0 0 0"/>
+  </joint>
+</robot>
