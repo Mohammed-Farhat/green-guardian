@@ -1,40 +1,74 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
-
-  <xacro:property name="base_length" value="0.75"/>
-  <xacro:property name="base_height" value="0.20"/>
-
-  <xacro:property name="depth_camera_width"  value="0.12"/>
-  <xacro:property name="depth_camera_depth"  value="0.04"/>
-  <xacro:property name="depth_camera_height" value="0.04"/>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
 
   <xacro:macro name="depth_camera" params="parent">
+
+    <!-- Main camera mount frame (normal ROS frame: X forward, Y left, Z up) -->
     <link name="depth_camera_link">
+
+      <!-- Visual -->
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <box size="${depth_camera_depth} ${depth_camera_width} ${depth_camera_height}"/>
+          <box size="0.03 0.10 0.03"/>
         </geometry>
-        <material name="sensor_black">
-          <color rgba="0.05 0.05 0.05 1.0"/>
-        </material>
+        <material name="mat_dark_grey"/>
       </visual>
+
+      <!-- Collision (same shape) -->
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <box size="${depth_camera_depth} ${depth_camera_width} ${depth_camera_height}"/>
+          <box size="0.03 0.10 0.03"/>
         </geometry>
       </collision>
+
+      <!-- Inertial (box) -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.15"/>
+
+        <!-- Box inertia:
+             Ixx = (1/12) m (y^2 + z^2)
+             Iyy = (1/12) m (x^2 + z^2)
+             Izz = (1/12) m (x^2 + y^2)
+        -->
+        <inertia
+          ixx="${(1.0/12.0) * 0.15 * (0.10*0.10 + 0.03*0.03)}"
+          iyy="${(1.0/12.0) * 0.15 * (0.03*0.03 + 0.03*0.03)}"
+          izz="${(1.0/12.0) * 0.15 * (0.03*0.03 + 0.10*0.10)}"
+          ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+
     </link>
 
-    <joint name="depth_camera_joint" type="fixed">
+    <!-- Mount pose relative to the robot -->
+    <joint name="base_to_depth_camera_joint" type="fixed">
       <parent link="${parent}"/>
       <child link="depth_camera_link"/>
-      <!-- forward-front mount -->
-      <origin
-        xyz="${base_length/2.0 + depth_camera_depth/2.0 + 0.01} 0 ${base_height/2.0 - depth_camera_height/2.0}"
-        rpy="0 0 0"/>
+      <!-- If camera should face forward, keep rpy=0 0 0 -->
+      <origin xyz="${depth_cam_x} ${depth_cam_y} ${depth_cam_z}" rpy="0 0 0"/>
     </joint>
+
+    <!-- Optional alias frame (sometimes drivers/users prefer 'camera_frame') -->
+    <link name="depth_camera_frame"/>
+
+    <joint name="depth_camera_link_to_frame_joint" type="fixed">
+      <parent link="depth_camera_link"/>
+      <child link="depth_camera_frame"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Optical frame (REP-103): Z forward, X right, Y down -->
+    <link name="depth_camera_optical_frame"/>
+
+    <joint name="depth_camera_frame_to_optical_joint" type="fixed">
+      <parent link="depth_camera_frame"/>
+      <child link="depth_camera_optical_frame"/>
+      <!-- ROS camera frame (X forward, Y left, Z up) -> Optical (Z forward, X right, Y down) -->
+      <origin xyz="0 0 0" rpy="-1.5708 0 -1.5708"/>
+    </joint>
+
   </xacro:macro>
 
 </robot>

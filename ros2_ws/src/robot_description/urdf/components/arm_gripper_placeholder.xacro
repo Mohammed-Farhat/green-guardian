@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--
+    Placeholder for arm + gripper (no joints yet)
+    - Creates: arm_base_link, gripper_link
+    - Attaches to: parent (usually base_link)
+  -->
+  <xacro:macro name="arm_gripper_placeholder" params="parent">
+
+    <!-- A small placeholder block on the front/top area (edit later) -->
+    <link name="arm_base_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.10 0.10 0.05"/>
+        </geometry>
+        <material name="mat_red"/>
+      </visual>
+    </link>
+
+    <joint name="base_to_arm_base_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="arm_base_link"/>
+      <!-- simple default: near the front, slightly above chassis -->
+      <origin xyz="${chassis_length/2.0 - 0.10} 0 ${chassis_height/2.0 + 0.05/2}" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Gripper placeholder frame -->
+    <link name="gripper_link"/>
+
+    <joint name="arm_base_to_gripper_joint" type="fixed">
+      <parent link="arm_base_link"/>
+      <child link="gripper_link"/>
+      <origin xyz="0.10 0 0" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>
