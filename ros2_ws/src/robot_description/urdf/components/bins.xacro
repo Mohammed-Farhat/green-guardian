@@ -37,14 +37,11 @@
           izz="${(1.0/12.0) * 0.6 * (bin_length*bin_length + bin_width*bin_width)}"
           ixy="0.0" ixz="0.0" iyz="0.0"/>
       </inertial>
-
     </link>
-
 
     <joint name="base_to_left_bin_joint" type="fixed">
       <parent link="${parent}"/>
       <child link="left_bin_link"/>
-      <!-- Positioned near the rear, offset to the left -->
       <origin xyz="${bin_x} ${bin_y_offset} ${bin_z}" rpy="0 0 0"/>
     </joint>
 
@@ -75,9 +72,7 @@
           izz="${(1.0/12.0) * 0.6 * (bin_length*bin_length + bin_width*bin_width)}"
           ixy="0.0" ixz="0.0" iyz="0.0"/>
       </inertial>
-
     </link>
-
 
     <joint name="base_to_right_bin_joint" type="fixed">
       <parent link="${parent}"/>

@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <robot name="green_guardian" xmlns:xacro="http://ros.org/wiki/xacro">
-
+ 
+  <xacro:include filename="$(find robot_description)/urdf/ros2_control/gz_ros2_control.xacro"/>
   <!-- =========================
        Config (shared variables)
        ========================= -->
@@ -13,7 +14,6 @@
   <xacro:include filename="$(find robot_description)/urdf/components/chassis.xacro"/>
   <xacro:include filename="$(find robot_description)/urdf/components/bins.xacro"/>
   <xacro:include filename="$(find robot_description)/urdf/components/wheels.xacro"/>
-  <xacro:include filename="$(find robot_description)/urdf/components/arm_gripper_placeholder.xacro"/>
 
   <!-- =========================
        Sensors
@@ -43,8 +43,6 @@
   <xacro:wheels parent="base_link"/>
 
   <!-- placeholder (we will implement later, can stay empty file for now) -->
-  <xacro:arm_gripper_placeholder parent="base_link"/>
-
   <xacro:lidar parent="base_link"/>
   <xacro:depth_camera parent="base_link"/>
 

@@ -51,7 +51,14 @@
     </joint>
 
     <!-- Optional alias frame (sometimes drivers/users prefer 'camera_frame') -->
-    <link name="depth_camera_frame"/>
+    <link name="depth_camera_frame">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+       <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
+    </link>
+
 
     <joint name="depth_camera_link_to_frame_joint" type="fixed">
       <parent link="depth_camera_link"/>
@@ -60,7 +67,14 @@
     </joint>
 
     <!-- Optical frame (REP-103): Z forward, X right, Y down -->
-    <link name="depth_camera_optical_frame"/>
+    <link name="depth_camera_optical_frame">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
+    </link>
+
 
     <joint name="depth_camera_frame_to_optical_joint" type="fixed">
       <parent link="depth_camera_frame"/>

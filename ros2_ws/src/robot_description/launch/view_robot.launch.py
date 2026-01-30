@@ -9,7 +9,7 @@ def generate_launch_description():
 
     # Use xacro to expand at runtime
     robot_description = os.popen(f"xacro {urdf_path}").read()
-    rviz_config = os.path.join(pkg_share, 'rviz', 'view_robot.rviz')
+    rviz_config = os.path.join(pkg_share, 'rviz', 'robot_config.rviz')
     return LaunchDescription([
         Node(
             package='robot_state_publisher',

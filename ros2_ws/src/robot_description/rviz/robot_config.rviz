@@ -66,11 +66,6 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        arm_base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         base_footprint:
           Alpha: 1
           Show Axes: false
@@ -107,10 +102,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        gripper_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
         laser_frame:
           Alpha: 1
           Show Axes: false
@@ -155,8 +146,6 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        arm_base_link:
-          Value: true
         base_footprint:
           Value: true
         base_link:
@@ -172,8 +161,6 @@ Visualization Manager:
         front_left_wheel_link:
           Value: true
         front_right_wheel_link:
-          Value: true
-        gripper_link:
           Value: true
         laser_frame:
           Value: true
@@ -195,9 +182,6 @@ Visualization Manager:
       Tree:
         base_footprint:
           base_link:
-            arm_base_link:
-              gripper_link:
-                {}
             chassis_link:
               {}
             depth_camera_link:
@@ -267,7 +251,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 1.8436399698257446
+      Distance: 1.8554366827011108
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -282,10 +266,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.5203982591629028
+      Pitch: 0.10979777574539185
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.4853982925415039
+      Yaw: 6.280397415161133
     Saved: ~
 Window Geometry:
   Displays:
@@ -303,5 +287,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1200
-  X: 650
-  Y: 925
+  X: 1132
+  Y: 424

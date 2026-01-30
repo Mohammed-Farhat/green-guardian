@@ -8,19 +8,16 @@
   <xacro:property name="chassis_width"  value="0.4"/>
   <xacro:property name="chassis_height" value="0.12"/>
 
-  <!-- Height of base_link above ground (simple assumption for now) -->
-  <xacro:property name="base_link_z" value="${wheel_radius + chassis_height/2.0}"/>
   <!-- ===== Wheels (4 wheels, differential by left/right sides) ===== -->
   <xacro:property name="wheel_radius" value="0.065"/>
   <xacro:property name="wheel_width"  value="0.03"/>
 
   <!-- wheel positions relative to base_link origin -->
-  <xacro:property name="wheel_x_front" value="${chassis_length/2.0 - 0.06}"/>
-  <xacro:property name="wheel_x_rear"  value="${-chassis_length/2.0 + 0.06}"/>
-  <xacro:property name="wheel_y_left"  value="${chassis_width/2.0 + wheel_width/2.0}"/>
+  <xacro:property name="wheel_x_front" value="${chassis_length/2.0 - 0.08}"/>
+  <xacro:property name="wheel_x_rear"  value="${-chassis_length/2.0 + 0.08}"/>
+  <xacro:property name="wheel_y_left"  value="${chassis_width/2.0 + wheel_width/2.0 + 0.002}"/>
   <xacro:property name="wheel_y_right" value="${-wheel_y_left}"/>
   <xacro:property name="wheel_z" value="${-chassis_height/2.0}"/>
-
 
   <!-- ===== Bins (left/right) ===== -->
   <xacro:property name="bin_length" value="0.20"/>
@@ -44,4 +41,7 @@
   <xacro:property name="depth_cam_y" value="0.00"/>
   <xacro:property name="depth_cam_z" value="${chassis_height/2.0 - 0.03/2.0}"/>
 
+  <!-- Height of base_link above ground (simple assumption for now) -->
+  <xacro:property name="base_link_z" value="${wheel_radius + chassis_height/2.0}"/>
+  
 </robot>
