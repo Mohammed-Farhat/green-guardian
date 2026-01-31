@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--
+    Wheels module (4 wheels, differential drive by left/right side)
+    - Creates links:
+        front_left_wheel_link, front_right_wheel_link
+        rear_left_wheel_link,  rear_right_wheel_link
+    - Creates joints:
+        front_left_wheel_joint, front_right_wheel_joint
+        rear_left_wheel_joint,  rear_right_wheel_joint
+    - Attaches to: parent (usually base_link)
+    - Uses dimensions:
+        wheel_radius, wheel_width,
+        wheel_x_front, wheel_x_rear,
+        wheel_y_left, wheel_y_right,
+        wheel_z
+  -->
+
+  <!-- Single wheel helper macro -->
+  <xacro:macro name="wheel" params="prefix parent x y z">
+    <link name="${prefix}_wheel_link">
+
+      <!-- Visual -->
+      <visual>
+        <!-- Cylinder axis is Z by default; rotate so cylinder axis aligns with Y (wheel axle) -->
+        <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="mat_black"/>
+      </visual>
+
+      <!-- Collision (same shape) -->
+      <collision>
+        <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+
+      <!-- Inertial (solid cylinder) -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.4"/>
+
+        <!-- Cylinder inertia (axis along Y) -->
+        <inertia
+          ixx="${(1.0/12.0) * 0.4 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}"
+          iyy="${(1.0/2.0)  * 0.4 * (wheel_radius*wheel_radius)}"
+          izz="${(1.0/12.0) * 0.4 * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}"
+          ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+
+    </link>
+
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="${parent}"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="${x} ${y} ${z}" rpy="0 0 0"/>
+      <!-- Wheel axle along Y -->
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Group macro that places all 4 wheels -->
+  <xacro:macro name="wheels" params="parent">
+
+    <!-- Front Left / Right -->
+    <xacro:wheel prefix="front_left"  parent="${parent}"
+                 x="${wheel_x_front}" y="${wheel_y_left}"  z="${wheel_z}"/>
+
+    <xacro:wheel prefix="front_right" parent="${parent}"
+                 x="${wheel_x_front}" y="${wheel_y_right}" z="${wheel_z}"/>
+
+    <!-- Rear Left / Right -->
+    <xacro:wheel prefix="rear_left"   parent="${parent}"
+                 x="${wheel_x_rear}"  y="${wheel_y_left}"  z="${wheel_z}"/>
+
+    <xacro:wheel prefix="rear_right"  parent="${parent}"
+                 x="${wheel_x_rear}"  y="${wheel_y_right}" z="${wheel_z}"/>
+
+  </xacro:macro>
+
+</robot>

@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- Reusable colors (RViz visuals) -->
+  <material name="mat_black">
+    <color rgba="0.05 0.05 0.05 1.0"/>
+  </material>
+
+  <material name="mat_dark_grey">
+    <color rgba="0.25 0.25 0.25 1.0"/>
+  </material>
+
+  <material name="mat_grey">
+    <color rgba="0.60 0.60 0.60 1.0"/>
+  </material>
+
+  <material name="mat_white">
+    <color rgba="0.95 0.95 0.95 1.0"/>
+  </material>
+
+  <!-- Organic / Non-organic bins (optional, adjust later) -->
+  <material name="mat_green">
+    <color rgba="0.10 0.70 0.20 1.0"/>
+  </material>
+
+  <material name="mat_blue">
+    <color rgba="0.10 0.35 0.85 1.0"/>
+  </material>
+
+  <!-- Accent / warning -->
+  <material name="mat_red">
+    <color rgba="0.85 0.15 0.15 1.0"/>
+  </material>
+
+</robot>

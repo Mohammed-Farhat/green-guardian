@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--
+    Bins module (left/right)
+    - Creates: left_bin_link, right_bin_link
+    - Attaches to: parent (usually base_link)
+    - Uses dimensions: bin_length, bin_width, bin_height, bin_x, bin_y_offset, bin_z
+    - Uses materials: mat_green (left), mat_blue (right)
+  -->
+  <xacro:macro name="bins" params="parent">
+
+
+    <!-- LEFT bin -->
+    <link name="left_bin_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${bin_length} ${bin_width} ${bin_height}"/>
+        </geometry>
+        <material name="mat_green"/>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${bin_length} ${bin_width} ${bin_height}"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.6"/>
+        <inertia
+          ixx="${(1.0/12.0) * 0.6 * (bin_width*bin_width + bin_height*bin_height)}"
+          iyy="${(1.0/12.0) * 0.6 * (bin_length*bin_length + bin_height*bin_height)}"
+          izz="${(1.0/12.0) * 0.6 * (bin_length*bin_length + bin_width*bin_width)}"
+          ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+    </link>
+
+    <joint name="base_to_left_bin_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="left_bin_link"/>
+      <origin xyz="${bin_x} ${bin_y_offset} ${bin_z}" rpy="0 0 0"/>
+    </joint>
+
+
+    <!-- RIGHT bin -->
+    <link name="right_bin_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${bin_length} ${bin_width} ${bin_height}"/>
+        </geometry>
+        <material name="mat_blue"/>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="${bin_length} ${bin_width} ${bin_height}"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.6"/>
+        <inertia
+          ixx="${(1.0/12.0) * 0.6 * (bin_width*bin_width + bin_height*bin_height)}"
+          iyy="${(1.0/12.0) * 0.6 * (bin_length*bin_length + bin_height*bin_height)}"
+          izz="${(1.0/12.0) * 0.6 * (bin_length*bin_length + bin_width*bin_width)}"
+          ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+    </link>
+
+    <joint name="base_to_right_bin_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="right_bin_link"/>
+      <!-- Positioned near the rear, offset to the right -->
+      <origin xyz="${bin_x} ${-bin_y_offset} ${bin_z}" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>

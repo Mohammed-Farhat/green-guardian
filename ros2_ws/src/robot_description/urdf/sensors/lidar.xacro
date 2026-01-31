@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!--
+    LiDAR module
+    - Creates: lidar_link, laser_frame (alias)
+    - Attaches to: parent (usually base_link)
+    - Uses mount variables: lidar_x, lidar_y, lidar_z
+    - Uses simple visual geometry (no physics yet)
+  -->
+  <xacro:macro name="lidar" params="parent">
+
+    <!-- Main LiDAR link -->
+    <link name="lidar_link">
+
+      <!-- Visual -->
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.04" length="0.05"/>
+        </geometry>
+        <material name="mat_dark_grey"/>
+      </visual>
+
+      <!-- Collision (same shape) -->
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.04" length="0.05"/>
+        </geometry>
+      </collision>
+
+      <!-- Inertial (solid cylinder, axis along Z) -->
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.2"/>
+
+        <!-- For cylinder about center, axis Z:
+             Izz = (1/2) m r^2
+             Ixx = Iyy = (1/12) m (3r^2 + L^2)
+        -->
+        <inertia
+          ixx="${(1.0/12.0) * 0.2 * (3*0.04*0.04 + 0.05*0.05)}"
+          iyy="${(1.0/12.0) * 0.2 * (3*0.04*0.04 + 0.05*0.05)}"
+          izz="${(1.0/2.0)  * 0.2 * (0.04*0.04)}"
+          ixy="0.0" ixz="0.0" iyz="0.0"/>
+      </inertial>
+
+    </link>
+
+    <!-- Mount LiDAR on the robot -->
+    <joint name="base_to_lidar_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="lidar_link"/>
+      <origin xyz="${lidar_x} ${lidar_y} ${lidar_z}" rpy="0 0 0"/>
+    </joint>
+
+    <!-- Optional alias frame often expected by LiDAR drivers -->
+    <link name="laser_frame">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="0.0001"/>
+        <inertia ixx="1e-8" iyy="1e-8" izz="1e-8" ixy="0" ixz="0" iyz="0"/>
+      </inertial>
+    </link>
+
+
+    <joint name="lidar_to_laser_frame_joint" type="fixed">
+      <parent link="lidar_link"/>
+      <child link="laser_frame"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+  </xacro:macro>
+
+</robot>
