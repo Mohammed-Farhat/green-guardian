@@ -41,6 +41,10 @@
             name="gz_ros2_control::GazeboSimROS2ControlPlugin">
       <parameters>$(arg controllers_yaml)</parameters>
     </plugin>
+
+    <!-- Publish ground-truth odometry from Gazebo so RViz matches collisions / contacts. -->
+    <plugin filename="gz-sim-odometry-publisher-system"
+            name="gz::sim::systems::OdometryPublisher"/>
   </gazebo>
 
 

@@ -1,6 +1,7 @@
-from setuptools import setup
-import os
 from glob import glob
+import os
+
+from setuptools import setup
 
 package_name = 'robot_gazebo'
 
@@ -14,7 +15,7 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
         (os.path.join('share', package_name, 'worlds'), glob('worlds/*.world')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
-    ],   
+    ],
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='masterpc',
@@ -23,6 +24,9 @@ setup(
     license='TODO',
     tests_require=['pytest'],
     entry_points={
-        'console_scripts': [],
+        'console_scripts': [
+            'ground_truth_tf_broadcaster = robot_gazebo.ground_truth_tf_broadcaster:main',
+            'scan_frame_rewriter = robot_gazebo.scan_frame_rewriter:main',
+        ],
     },
 )

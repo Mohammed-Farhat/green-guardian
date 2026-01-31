@@ -1,10 +1,6 @@
 <?xml version="1.0" ?>
 <sdf version="1.7">
-  <world name="empty">
-    <physics name="1ms" type="ignored">
-      <max_step_size>0.001</max_step_size>
-      <real_time_factor>1</real_time_factor>
-    </physics>
+  <world name="arena">
 
     <include>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Ground Plane</uri>
@@ -13,5 +9,106 @@
     <include>
       <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/Sun</uri>
     </include>
+
+    <!-- ===== Walls (10m x 6m arena) ===== -->
+    <!-- Wall thickness -->
+    <!-- Arena centered at (0,0). -->
+
+    <!-- North wall (y = +3) -->
+    <model name="wall_north">
+      <static>true</static>
+      <pose>0 3 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>10 0.2 1</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>10 0.2 1</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- South wall (y = -3) -->
+    <model name="wall_south">
+      <static>true</static>
+      <pose>0 -3 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="col">  
+          <geometry><box><size>10 0.2 1</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>10 0.2 1</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- East wall (x = +5) -->
+    <model name="wall_east">
+      <static>true</static>
+      <pose>5 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.2 6 1</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.2 6 1</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- West wall (x = -5) -->
+    <model name="wall_west">
+      <static>true</static>
+      <pose>-5 0 0.5 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.2 6 1</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.2 6 1</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ===== Obstacles (boxes) ===== -->
+    <model name="box_1">
+      <static>true</static>
+      <pose>1.5 1.0 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.6 0.6 0.5</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.6 0.6 0.5</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="box_2">
+      <static>true</static>
+      <pose>-1.0 -0.8 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.8 0.4 0.5</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.8 0.4 0.5</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
+    <model name="box_3">
+      <static>true</static>
+      <pose>0.0 -2.0 0.25 0 0 0</pose>
+      <link name="link">
+        <collision name="col">
+          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+        </collision>
+        <visual name="vis">
+          <geometry><box><size>0.5 0.5 0.5</size></box></geometry>
+        </visual>
+      </link>
+    </model>
+
   </world>
 </sdf>

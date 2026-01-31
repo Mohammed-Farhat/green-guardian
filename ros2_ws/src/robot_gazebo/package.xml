@@ -8,8 +8,15 @@
   <license>MIT</license>
 
   <depend>rclpy</depend>
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>xacro</depend>
   <depend>robot_state_publisher</depend>
+  <depend>controller_manager</depend>
+  <depend>ros_gz_bridge</depend>
+  <depend>ros_gz_sim</depend>
   <depend>gazebo_ros</depend>
 
   <test_depend>ament_copyright</test_depend>

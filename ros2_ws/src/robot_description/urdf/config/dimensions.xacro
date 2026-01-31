@@ -25,10 +25,9 @@
   <xacro:property name="bin_height" value="0.15"/>
 
   <!-- bin mounting positions -->
-  <xacro:property name="bin_rear_margin" value="0.02"/>
-  <xacro:property name="bin_x" value="${-chassis_length/2.0 + bin_length/2.0 + bin_rear_margin}"/>
+  <xacro:property name="bin_x" value="${-chassis_length/2.0 - bin_length/2.0}"/>
   <xacro:property name="bin_y_offset" value="0.10"/>
-  <xacro:property name="bin_z" value="${chassis_height/2.0 + bin_height/2.0}"/>
+  <xacro:property name="bin_z" value="0.00"/>
 
   <!-- ===== LIDAR mount ===== -->
   <xacro:property name="lidar_x" value="-0.03"/>

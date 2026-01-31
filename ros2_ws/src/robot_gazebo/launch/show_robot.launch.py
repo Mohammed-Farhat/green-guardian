@@ -3,10 +3,9 @@ import tempfile
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, ExecuteProcess
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
-from launch.actions import TimerAction
 import xacro
 
 
@@ -14,7 +13,6 @@ def generate_launch_description():
     robot_description_pkg = get_package_share_directory('robot_description')
     robot_gazebo_pkg = get_package_share_directory('robot_gazebo')
     controllers_yaml = os.path.join(robot_gazebo_pkg, 'config', 'controllers.yaml')
-
 
     xacro_path = os.path.join(robot_description_pkg, 'urdf', 'robot.urdf.xacro')
     world_path = os.path.join(robot_gazebo_pkg, 'worlds', 'empty.world')
@@ -24,8 +22,8 @@ def generate_launch_description():
     robot_urdf = doc.toxml()
 
     # Write URDF to a temp file for ros_gz_sim create
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".urdf")
-    tmp.write(robot_urdf.encode("utf-8"))
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.urdf')
+    tmp.write(robot_urdf.encode('utf-8'))
     tmp.close()
 
     # Start Gazebo (Harmonic) using ros_gz_sim launch
@@ -36,13 +34,46 @@ def generate_launch_description():
         launch_arguments={'gz_args': f'-r {world_path}'}.items()
     )
 
-    clock_bridge = Node(
-        package="ros_gz_bridge",
-        executable="parameter_bridge",
-        arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
-        output="screen",
-)
+    gz_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=[
+            '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+            '/model/green_guardian/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
+        ],
+        remappings=[('/scan', '/scan_raw')],
+        output='screen',
+    )
 
+    scan_frame_rewriter = Node(
+        package='robot_gazebo',
+        executable='scan_frame_rewriter',
+        output='screen',
+        parameters=[
+            {
+                'use_sim_time': True,
+                'input_topic': '/scan_raw',
+                'output_topic': '/scan',
+                'frame_id': 'laser_frame',
+            }
+        ],
+    )
+
+    ground_truth_tf = Node(
+        package='robot_gazebo',
+        executable='ground_truth_tf_broadcaster',
+        output='screen',
+        parameters=[
+            {
+                'use_sim_time': True,
+                'input_odom_topic': '/model/green_guardian/odometry',
+                'output_odom_topic': '/odom',
+                'odom_frame': 'odom',
+                'base_frame': 'base_footprint',
+            }
+        ],
+    )
 
     # Publish TF from robot_description
     rsp = Node(
@@ -58,23 +89,23 @@ def generate_launch_description():
             'ros2', 'run', 'ros_gz_sim', 'create',
             '-name', 'green_guardian',
             '-file', tmp.name,
-            '-x', '0.0', '-y', '0.0', '-z', '0.20'
+            '-x', '0.0', '-y', '0.0', '-z', '0.20', '-Y', '0.0'
         ],
         output='screen'
     )
 
     spawner_jsb = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
-        output="screen",
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster', '--controller-manager', '/controller_manager'],
+        output='screen',
     )
 
     spawner_dd = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["diff_drive_controller", "--controller-manager", "/controller_manager"],
-        output="screen",
+        package='controller_manager',
+        executable='spawner',
+        arguments=['diff_drive_controller', '--controller-manager', '/controller_manager'],
+        output='screen',
     )
 
     spawn_controllers = TimerAction(
@@ -84,8 +115,10 @@ def generate_launch_description():
 
     return LaunchDescription([
         gz_sim,
-        clock_bridge,
+        gz_bridge,
         rsp,
+        scan_frame_rewriter,
+        ground_truth_tf,
         spawn,
         spawn_controllers
-])
+    ])
