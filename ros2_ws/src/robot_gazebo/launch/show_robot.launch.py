@@ -3,19 +3,21 @@ import tempfile
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 import xacro
 
 
 def generate_launch_description():
     robot_description_pkg = get_package_share_directory('robot_description')
-    robot_gazebo_pkg = get_package_share_directory('robot_gazebo')
-    controllers_yaml = os.path.join(robot_gazebo_pkg, 'config', 'controllers.yaml')
+    controllers_yaml = os.path.join(get_package_share_directory('robot_gazebo'), 'config', 'controllers.yaml')
 
     xacro_path = os.path.join(robot_description_pkg, 'urdf', 'robot.urdf.xacro')
-    world_path = os.path.join(robot_gazebo_pkg, 'worlds', 'empty.world')
+    world = LaunchConfiguration('world')
+    world_path = PathJoinSubstitution([FindPackageShare('robot_gazebo'), 'worlds', world])
 
     # Xacro -> URDF
     doc = xacro.process_file(xacro_path, mappings={'controllers_yaml': controllers_yaml})
@@ -31,7 +33,7 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py')
         ),
-        launch_arguments={'gz_args': f'-r {world_path}'}.items()
+        launch_arguments={'gz_args': ['-r ', world_path]}.items()
     )
 
     gz_bridge = Node(
@@ -114,6 +116,11 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        DeclareLaunchArgument(
+            'world',
+            default_value='empty.world',
+            description='World file from robot_gazebo/worlds (e.g. empty.world, arena_large.world)',
+        ),
         gz_sim,
         gz_bridge,
         rsp,
