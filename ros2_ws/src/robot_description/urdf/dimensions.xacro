@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ================================================================
+       GREEN GUARDIAN — CENTRAL DIMENSIONS FILE
+       All values in METERS (URDF uses SI units)
+       Source of truth: dimensions.md
+       
+       DO NOT hardcode numbers elsewhere — always reference these
+       properties so a single change propagates to the whole model.
+       ================================================================ -->
+
+  <!-- ───────────────────────────────────────────────────────────────
+       CHASSIS
+       Represents: bottom plate + standoffs + top plate as one box
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:property name="chassis_length"    value="0.400"/>   <!-- 40.0 cm -->
+  <xacro:property name="chassis_width"     value="0.300"/>   <!-- 30.0 cm -->
+  <xacro:property name="chassis_height"    value="0.066"/>   <!-- 6.6  cm = 4mm + 58mm + 4mm -->
+  <xacro:property name="chassis_clearance" value="0.053"/>   <!-- 5.3  cm ground to chassis bottom -->
+
+  <!-- Derived chassis Z values -->
+  <xacro:property name="chassis_top_z"    value="${chassis_clearance + chassis_height}"/>
+  <!-- = 0.119 m — top face of chassis box from ground -->
+  <xacro:property name="base_link_z"      value="${chassis_clearance + chassis_height / 2.0}"/>
+  <!-- = 0.086 m — chassis center from ground = base_link origin height -->
+
+  <!-- ───────────────────────────────────────────────────────────────
+       WHEELS
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:property name="wheel_radius"     value="0.0375"/>   <!-- 3.75 cm -->
+  <xacro:property name="wheel_width"      value="0.0285"/>   <!-- 2.85 cm -->
+  <xacro:property name="track_width"      value="0.341"/>    <!-- 34.1 cm center-to-center L/R -->
+  <xacro:property name="wheelbase"        value="0.290"/>    <!-- 29.0 cm center-to-center F/R -->
+
+  <!-- Derived wheel positions — relative to base_link origin -->
+  <xacro:property name="wheel_x_front"   value="${wheelbase / 2.0}"/>          <!-- +0.145 m -->
+  <xacro:property name="wheel_x_rear"    value="${-wheelbase / 2.0}"/>         <!-- -0.145 m -->
+  <xacro:property name="wheel_y_left"    value="${track_width / 2.0}"/>         <!-- +0.1705 m -->
+  <xacro:property name="wheel_y_right"   value="${-track_width / 2.0}"/>        <!-- -0.1705 m -->
+  <xacro:property name="wheel_z"         value="${wheel_radius - base_link_z}"/><!-- -0.0485 m -->
+  <!-- wheel_z is negative because wheel centers are below base_link -->
+
+  <!-- ───────────────────────────────────────────────────────────────
+       LIDAR (RPLidar A1)
+       Mounted on a cylinder standoff on top of chassis
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:property name="lidar_radius"    value="0.035"/>     <!-- 3.5 cm -->
+  <xacro:property name="lidar_height"    value="0.030"/>     <!-- 3.0 cm -->
+  <xacro:property name="lidar_x"         value="0.099"/>     <!-- +9.9 cm forward from chassis center -->
+  <xacro:property name="lidar_y"         value="0.106"/>     <!-- +10.6 cm left of chassis center -->
+
+  <xacro:property name="lidar_standoff_h" value="0.145"/>   <!-- 14.5 cm standoff height -->
+  <xacro:property name="lidar_standoff_r" value="0.010"/>   <!-- 1.0 cm standoff radius -->
+
+  <!-- Derived LiDAR positions — relative to base_link origin -->
+  <xacro:property name="lidar_standoff_z" value="${chassis_height / 2.0 + lidar_standoff_h / 2.0}"/>
+  <!-- standoff center Z = chassis_top (rel to base_link) + half standoff = 0.033 + 0.0725 = 0.1055 m -->
+
+  <xacro:property name="lidar_z"         value="${lidar_standoff_h / 2.0 + lidar_height / 2.0}"/>
+  <!-- LiDAR center Z relative to standoff center = 0.0725 + 0.015 = 0.0875 m -->
+
+  <!-- ───────────────────────────────────────────────────────────────
+       CAMERA (Logitech C920)
+       Mounted on front face, centered, 15cm from ground, 20° down tilt
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:property name="camera_width"    value="0.094"/>     <!-- 9.4 cm (Y direction) -->
+  <xacro:property name="camera_height"   value="0.029"/>     <!-- 2.9 cm (Z direction) -->
+  <xacro:property name="camera_depth"    value="0.045"/>     <!-- 4.5 cm (X direction) -->
+  <xacro:property name="camera_y"        value="0.0"/>       <!-- centered on robot -->
+  <xacro:property name="camera_pitch" value="${20.0 * pi / 180.0}"/>
+  <!-- 0.349 rad — positive = nose down (looking at ground) -->
+
+  <!-- Derived camera position — relative to base_link origin -->
+  <xacro:property name="camera_x"        value="${chassis_length / 2.0 + camera_depth / 2.0}"/>
+  <!-- front face + half depth = 0.200 + 0.0225 = 0.2225 m -->
+  <xacro:property name="camera_z"        value="${0.150 - base_link_z}"/>
+  <!-- 15.0 cm from ground - base_link_z = 0.150 - 0.086 = 0.064 m -->
+
+  <!-- ───────────────────────────────────────────────────────────────
+       IMU (GY-91)
+       Tiny flat box sitting on top center of chassis — visible in RViz
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:property name="imu_length"      value="0.020"/>     <!-- 2.0 cm (X) -->
+  <xacro:property name="imu_width"       value="0.015"/>     <!-- 1.5 cm (Y) -->
+  <xacro:property name="imu_height"      value="0.003"/>     <!-- 0.3 cm (Z) -->
+
+  <!-- Derived IMU position — relative to base_link origin -->
+  <xacro:property name="imu_z"           value="${chassis_height / 2.0 + imu_height / 2.0}"/>
+  <!-- sits on top of chassis: 0.033 + 0.0015 = 0.0345 m -->
+
+  <!-- ───────────────────────────────────────────────────────────────
+       BINS
+       Left = organic (green), Right = non-organic (yellow)
+       Stick out from front face, top aligned with chassis top
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:property name="bin_height" value="${chassis_height}"/>     <!-- 15.0 cm -->
+  <xacro:property name="bin_width"       value="0.120"/>     <!-- 12.0 cm (Y) -->
+  <xacro:property name="bin_depth"       value="0.080"/>     <!-- 8.0  cm (X) -->
+  <xacro:property name="bin_y_offset"    value="0.090"/>     <!-- 9.0  cm from centerline -->
+
+  <!-- Derived bin positions — relative to base_link origin -->
+  <xacro:property name="bin_x"           value="${chassis_length / 2.0 + bin_depth / 2.0}"/>
+  <!-- front face + half depth = 0.200 + 0.040 = 0.240 m -->
+  <xacro:property name="bin_z"           value="${chassis_height / 2.0 - bin_height / 2.0}"/>
+  <!-- top of bin = chassis top → center = chassis_top_rel - bin_height/2 = 0.033 - 0.075 = -0.042 m -->
+
+</robot>

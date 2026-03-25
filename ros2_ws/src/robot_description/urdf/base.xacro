@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ================================================================
+       GREEN GUARDIAN — BASE
+       Contains: base_footprint, base_link (chassis), 4 wheels, IMU
+       
+       base_footprint : virtual link at ground level, center of robot
+       base_link      : chassis box center (= base_footprint + base_link_z)
+       
+       Wheel joints are CONTINUOUS (they spin) — needed for odometry.
+       All other joints are FIXED.
+       ================================================================ -->
+
+  <!-- ───────────────────────────────────────────────────────────────
+       WHEEL MACRO
+       Called 4 times — once per wheel.
+       The cylinder visual is rotated 90° around X so its flat face
+       points outward (cylinders are Z-aligned by default in URDF).
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:macro name="wheel" params="name x y">
+
+    <link name="${name}">
+      <visual>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <!-- rotate 90° around X so the cylinder axis aligns with Y (left-right) -->
+        <material name="wheel_black"/>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+      </collision>
+      <inertial>
+        <!-- Approximate solid cylinder: m=0.2kg, r=0.0375, h=0.0285 -->
+        <!-- Ixx = Iyy = m(3r²+h²)/12, Izz = mr²/2 -->
+        <mass value="0.2"/>
+        <inertia ixx="0.000148" ixy="0.0" ixz="0.0"
+                 iyy="0.000148" iyz="0.0"
+                 izz="0.000141"/>
+      </inertial>
+    </link>
+
+    <joint name="${name}_joint" type="continuous">
+      <parent link="base_link"/>
+      <child  link="${name}"/>
+      <origin xyz="${x} ${y} ${wheel_z}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <!-- axis Y = wheel spins around left-right axis -->
+    </joint>
+
+  </xacro:macro>
+
+  <!-- ───────────────────────────────────────────────────────────────
+       BASE FOOTPRINT
+       Virtual ground-level link. Required by Nav2 and AMCL.
+       No geometry — just an origin at ground center.
+       ─────────────────────────────────────────────────────────────── -->
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child  link="base_link"/>
+    <origin xyz="0 0 ${base_link_z}" rpy="0 0 0"/>
+    <!-- lifts base_link to chassis center height above ground -->
+  </joint>
+
+  <!-- ───────────────────────────────────────────────────────────────
+       BASE LINK (chassis box)
+       Single box representing both plates + standoffs merged.
+       Origin is at the geometric center of the box.
+       ─────────────────────────────────────────────────────────────── -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="chassis_grey"/>
+    </visual>
+    <collision>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+    </collision>
+    <inertial>
+      <!-- Approximate box: m=3.0 kg (chassis + electronics + batteries) -->
+      <!-- Ixx = m(w²+h²)/12, Iyy = m(l²+h²)/12, Izz = m(l²+w²)/12 -->
+      <mass value="3.0"/>
+      <inertia ixx="0.0226" ixy="0.0" ixz="0.0"
+               iyy="0.0334" iyz="0.0"
+               izz="0.0525"/>
+    </inertial>
+  </link>
+
+  <!-- ───────────────────────────────────────────────────────────────
+       WHEELS (×4)
+       ─────────────────────────────────────────────────────────────── -->
+  <xacro:wheel name="wheel_front_left"
+               x="${wheel_x_front}" y="${wheel_y_left}"/>
+
+  <xacro:wheel name="wheel_front_right"
+               x="${wheel_x_front}" y="${wheel_y_right}"/>
+
+  <xacro:wheel name="wheel_rear_left"
+               x="${wheel_x_rear}"  y="${wheel_y_left}"/>
+
+  <xacro:wheel name="wheel_rear_right"
+               x="${wheel_x_rear}"  y="${wheel_y_right}"/>
+
+  <!-- ───────────────────────────────────────────────────────────────
+       IMU LINK
+       Small flat box sitting on top-center of chassis.
+       Visible in RViz as a tiny blue rectangle.
+       frame_id used by IMU driver: "imu_link"
+       ─────────────────────────────────────────────────────────────── -->
+  <link name="imu_link">
+    <visual>
+      <geometry>
+        <box size="${imu_length} ${imu_width} ${imu_height}"/>
+      </geometry>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <material name="imu_blue"/>
+    </visual>
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="0.0000001" ixy="0.0" ixz="0.0"
+               iyy="0.0000001" iyz="0.0"
+               izz="0.0000001"/>
+    </inertial>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="imu_link"/>
+    <origin xyz="0 0 ${imu_z}" rpy="0 0 0"/>
+    <!-- centered on chassis, sitting on top face -->
+  </joint>
+
+</robot>

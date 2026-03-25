@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ================================================================
+       GREEN GUARDIAN — MATERIALS
+       Visual colors for RViz2 display only.
+       These have no effect on physics or collision.
+       ================================================================ -->
+
+  <material name="chassis_grey">
+    <color rgba="0.75 0.75 0.75 0.9"/>   <!-- translucent light grey — plexiglass look -->
+  </material>
+
+  <material name="wheel_black">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+
+  <material name="lidar_black">
+    <color rgba="0.15 0.15 0.15 1.0"/>
+  </material>
+
+  <material name="lidar_standoff_gold">
+    <color rgba="0.8 0.65 0.1 1.0"/>    <!-- brass/gold standoff color -->
+  </material>
+
+  <material name="camera_dark_grey">
+    <color rgba="0.2 0.2 0.2 1.0"/>
+  </material>
+
+  <material name="imu_blue">
+    <color rgba="0.0 0.3 0.8 1.0"/>     <!-- PCB blue -->
+  </material>
+
+  <material name="bin_green">
+    <color rgba="0.1 0.7 0.2 1.0"/>     <!-- organic bin — green -->
+  </material>
+
+  <material name="bin_yellow">
+    <color rgba="0.9 0.75 0.0 1.0"/>    <!-- non-organic bin — yellow -->
+  </material>
+
+</robot>
