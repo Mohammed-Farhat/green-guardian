@@ -15,11 +15,8 @@ The Green Guardian is a ROS2-based autonomous robot capable of:
 ## System Architecture
 
 - **Navigation:** SLAM Toolbox, AMCL, Nav2
-- **Perception:** YOLO + Intel RealSense depth
+- **Perception:** YOLO + C920 Camera
 - **Control:** Raspberry Pi 5
-- **AI Processing:** Jetson Nano
-- **Middleware:** ROS 2
-- **Backend:** FastAPI + MQTT
 - **Frontend:** Web Dashboard
 
 ## Repository Structure

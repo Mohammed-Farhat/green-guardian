@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
 import {
@@ -15,105 +15,134 @@ import {
 } from "recharts";
 import "./Dashboard.css";
 import RobotMap from "../../services/RobotMaps";
+import { telemetryApi } from "../../services/api";
 
 const TEMP_COLORS = ["#4caf50", "#ff9800", "#f44336"]; // ok / warm / hot
 
-// 🔧 Simulate robot + RPi + GPS data
-
-
-function simulateRobotData(
-  prev = {
-    speed: 0,
-    temperature: 25,
-    binOrganic: 40,
-    binNonOrganic: 35,
-    cpuTemp: 45,
-    fanSpeed: 30,
-    humidity: 60,
-    battery: 20,
-    lat: 33.675637,
-    lng: 35.465756,
-  }
-) {
-  const speed = Math.max(0, prev.speed + (Math.random() * 4 - 2));
-  const temperature = 25 + Math.sin(Date.now() / 5000) * 5 + Math.random();
-  const binOrganic = Math.max(0, Math.min(100, prev.binOrganic + Math.random() * 3 - 1.5));
-  const binNonOrganic = Math.max(0, Math.min(100, prev.binNonOrganic + Math.random() * 3 - 1.5));
-  const cpuTemp = Math.max(40, Math.min(85, prev.cpuTemp + (Math.random() * 4 - 2)));
-  const fanSpeed = Math.max(0, Math.min(100, prev.fanSpeed + (Math.random() * 10 - 5)));
-  const humidity = Math.max(30, Math.min(90, prev.humidity + (Math.random() * 3 - 1.5)));
-  const battery = Math.max(0, Math.min(100, prev.battery - Math.random() * 0.5));
-
-  const lat = prev.lat + (Math.random() - 0.5) * 0.0005;
-  const lng = prev.lng + (Math.random() - 0.5) * 0.0005;
-
+// Simulate GPS only (location not integrated with backend)
+function simulateGps(prev = { lat: 33.675637, lng: 35.465756 }) {
   return {
-    timestamp: Date.now(),
-    speed: Number(speed.toFixed(2)),
-    temperature: Number(temperature.toFixed(2)),
-    binOrganic: Math.round(binOrganic),
-    binNonOrganic: Math.round(binNonOrganic),
-    cpuTemp: Math.round(cpuTemp),
-    fanSpeed: Math.round(fanSpeed),
-    humidity: Math.round(humidity),
-    battery: Math.round(battery),
-    lat: Number(lat.toFixed(6)),
-    lng: Number(lng.toFixed(6)),
+    lat: Number((prev.lat + (Math.random() - 0.5) * 0.0005).toFixed(6)),
+    lng: Number((prev.lng + (Math.random() - 0.5) * 0.0005).toFixed(6)),
   };
 }
 
 export default function Dashboard() {
-  
   const navigate = useNavigate();
   const [last, setLast] = useState(null);
   const [history, setHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isBinEmpty, setIsBinEmpty] = useState(false);
   const [batteryAlerted, setBatteryAlerted] = useState(false);
-  useEffect(() => {
-  if (!last) return;
+  const [apiError, setApiError] = useState(false);
+  const gpsRef = useRef({ lat: 33.675637, lng: 35.465756 });
 
-  if (last.battery <= 20 && !batteryAlerted) {
-    toast.error("🔋 Battery critical (20%) – Robot needs charging!");
-    setBatteryAlerted(true);
+  // Get selected robot ID from localStorage
+  let selectedRobot = null;
+  try {
+    selectedRobot = JSON.parse(localStorage.getItem("selectedRobot") || "null");
+  } catch {
+    // corrupted data
   }
+  const robotId = selectedRobot?.id || null;
 
-  // reset alert if battery goes back up (charging simulation)
-  if (last.battery > 25 && batteryAlerted) {
-    setBatteryAlerted(false);
-  }
-}, [last, batteryAlerted]);
+  // Redirect if no robot selected
   useEffect(() => {
-    let lastSample = {
-      speed: 0,
-      temperature: 25,
-      binOrganic: 40,
-      binNonOrganic: 35,
-      cpuTemp: 45,
-      fanSpeed: 30,
-      humidity: 60,
-      battery: 20,
-      lat: 33.675637,
-      lng: 35.465756,
+    if (!robotId) {
+      navigate("/robots", { replace: true });
+    }
+  }, [robotId, navigate]);
+
+  // Battery alert effect
+  useEffect(() => {
+    if (!last) return;
+    if (last.battery <= 20 && !batteryAlerted) {
+      toast.error("Battery critical (20%) - Robot needs charging!");
+      setBatteryAlerted(true);
+    }
+    if (last.battery > 25 && batteryAlerted) {
+      setBatteryAlerted(false);
+    }
+  }, [last, batteryAlerted]);
+
+  // Fetch history on mount
+  useEffect(() => {
+    if (!robotId) return;
+
+    async function loadHistory() {
+      try {
+        const data = await telemetryApi.getHistory(robotId, 30);
+        // API returns newest first, reverse for chronological order
+        const reversed = data.reverse();
+        const mapped = reversed.map((t) => ({
+          speed: Number((t.speed || 0).toFixed(2)),
+          temperature: Number((t.temperature || 0).toFixed(2)),
+          binOrganic: Math.round(t.binOrganic || 0),
+          binNonOrganic: Math.round(t.binNonOrganic || 0),
+          cpuTemp: Math.round(t.cpuTemp || 0),
+          fanSpeed: Math.round(t.fanSpeed || 0),
+          humidity: Math.round(t.humidity || 0),
+          battery: Math.round(t.battery || 0),
+          lat: gpsRef.current.lat,
+          lng: gpsRef.current.lng,
+          timestamp: new Date(t.timestamp).getTime(),
+          timeLabel: new Date(t.timestamp).toLocaleTimeString(),
+        }));
+        setHistory(mapped);
+        if (mapped.length > 0) setLast(mapped[mapped.length - 1]);
+      } catch (err) {
+        if (err.message !== "No telemetry found") {
+          console.error("Failed to load history:", err.message);
+        }
+      }
+    }
+
+    loadHistory();
+  }, [robotId]);
+
+  // Poll latest telemetry every 3 seconds
+  useEffect(() => {
+    if (!robotId) return;
+
+    const poll = async () => {
+      try {
+        const res = await telemetryApi.getLatest(robotId);
+        const t = res.data;
+
+        // Simulate GPS movement (location not integrated)
+        const gps = simulateGps(gpsRef.current);
+        gpsRef.current = gps;
+
+        const sample = {
+          speed: Number((t.speed || 0).toFixed(2)),
+          temperature: Number((t.temperature || 0).toFixed(2)),
+          binOrganic: Math.round(t.binOrganic || 0),
+          binNonOrganic: Math.round(t.binNonOrganic || 0),
+          cpuTemp: Math.round(t.cpuTemp || 0),
+          fanSpeed: Math.round(t.fanSpeed || 0),
+          humidity: Math.round(t.humidity || 0),
+          battery: Math.round(t.battery || 0),
+          lat: gps.lat,
+          lng: gps.lng,
+          timestamp: Date.now(),
+          timeLabel: new Date().toLocaleTimeString(),
+        };
+
+        setLast(sample);
+        setHistory((prev) => [...prev, sample].slice(-30));
+        setApiError(false);
+      } catch (err) {
+        if (!apiError) {
+          console.error("Telemetry poll failed:", err.message);
+          setApiError(true);
+        }
+      }
     };
 
-    const update = () => {
-      const sample = simulateRobotData(lastSample);
-      lastSample = sample;
-
-      const timeLabel = new Date(sample.timestamp).toLocaleTimeString();
-
-      setLast(sample);
-      setHistory((prev) => {
-        const next = [...prev, { ...sample, timeLabel }];
-        return next.slice(-30);
-      });
-    };
-
-    update();
-    const id = setInterval(update, 3000);
+    const id = setInterval(poll, 3000);
+    poll(); // immediate first fetch
     return () => clearInterval(id);
-  }, []);
+  }, [robotId]);
 
   const tempPieData = (() => {
     if (!last) return [];
@@ -151,7 +180,7 @@ export default function Dashboard() {
           aria-label="Go back to robot selection"
           title="Select another robot"
         >
-          <div className="sidebar-logo">🤖</div>
+          <div className="sidebar-logo">{"\u{1F916}"}</div>
         </button>
         <nav className="sidebar-nav">
           <button
@@ -306,19 +335,19 @@ export default function Dashboard() {
                   <div style={{ textAlign: "center", padding: "20px" }}>
                     <div className="bin-wrapper" style={{ alignItems: "center" }}>
                       <p>Organic:</p>
-                      <div className="bin-bar" style={{ width: "800px", height: "30px" }}>
+                      <div className="bin-bar" style={{ height: "30px" }}>
                         <div className="bin-fill" style={{ width: `${last.binOrganic}%`, backgroundColor: "#4caf50" }} />
                       </div>
                       <p>{last.binOrganic}% Full</p>
 
                       <p>Non-Organic:</p>
-                      <div className="bin-bar" style={{ width: "800px", height: "30px" }}>
+                      <div className="bin-bar" style={{ height: "30px" }}>
                         <div className="bin-fill" style={{ width: `${last.binNonOrganic}%`, backgroundColor: "#ff9800" }} />
                       </div>
                       <p>{last.binNonOrganic}% Full</p>
 
                       {(last.binOrganic > 90 || last.binNonOrganic > 90) && (
-                        <p style={{ color: "red", fontWeight: "bold" }}>⚠️ Bin Almost Full!</p>
+                        <p style={{ color: "red", fontWeight: "bold" }}>Warning: Bin Almost Full!</p>
                       )}
                     </div>
                   </div>
@@ -344,7 +373,7 @@ export default function Dashboard() {
                   disabled={isBinEmpty}
                   title="Command robot to empty the bins"
                 >
-                  {isBinEmpty ? "🔄 Emptying..." : "🗑️ Empty Bins"}
+                  {isBinEmpty ? "Emptying..." : "Empty Bins"}
                 </button>
               </div>
             </>
@@ -475,26 +504,6 @@ export default function Dashboard() {
                 </ResponsiveContainer>
               </div>
 
-              {/* <div className="card wide-card">
-                <h3>Fan Speed Over Time (%)</h3>
-                <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={history}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="timeLabel" minTickGap={20} />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Line
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey="fanSpeed"
-                      stroke="#00bcd4"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div> */}
-
               <div className="card small-card">
                 <h3>CPU & System</h3>
                 {last ? (
@@ -551,8 +560,6 @@ export default function Dashboard() {
                   <p>Loading…</p>
                 )}
               </div>
-
-
             </>
           )}
         </div>

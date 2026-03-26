@@ -1,162 +1,24 @@
-/* .dashboard {
-  padding: 20px;
-  background: #f5f5f5;
-  min-height: 100vh;
-} */
-
-.dashboard-header {
-  margin-bottom: 10px;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-template-rows: auto auto;
-  gap: 16px;
-}
-
-.card {
-  background: #fff;
-  border-radius: 10px;
-  padding: 7px 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  display: flex;
-  flex-direction: column;
-}
-
-.big-card {
-  grid-row: span 2;
-}
-
-.small-card {
-  justify-content: flex-start;
-}
-
-.wide-card {
-  grid-column: span 2;
-}
-
-.card-main-row {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-}
-
-.chart-wrapper {
-  flex: 1.3;
-}
-
-.stats-column {
-  flex: 1;
-}
-
-.legend {
-  margin-top: 8px;
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-}
-
-.legend .dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  display: inline-block;
-  margin-right: 4px;
-}
-
-.legend .ok {
-  background: #4caf50;
-}
-.legend .warm {
-  background: #ff9800;
-}
-.legend .hot {
-  background: #f44336;
-}
-
-.metrics-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.metrics-list li {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-/* Bin progress styles (ensure the bar is visible) */
-.bin-card .bin-wrapper { display:flex;flex-direction:column;gap:12px;align-items:center }
-.bin-bar { width:100%;height:18px;background:#e6e6e6;border-radius:999px;overflow:hidden }
-.bin-fill { height:100%;background:linear-gradient(90deg,#4caf50,#ffb020);width:0%;transition:width 600ms ease }
-.bin-meta { font-size:14px;color:#333 }
-
-/* Empty Bin Card */
-.empty-bin-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-}
-
-.empty-bin-btn {
-  width: 100%;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #ff6b6b, #ff9999);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-}
-
-.empty-bin-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4);
-  background: linear-gradient(135deg, #ff5252, #ff8888);
-}
-
-.empty-bin-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: linear-gradient(135deg, #ffb3b3, #ffd6d6);
-}
-
-.empty-bin-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-}
-
+/* ===== APP SHELL: sidebar + main ===== */
 .app-shell {
   display: flex;
   min-height: 100vh;
   background: #f5f5f5;
 }
 
-/* LEFT SIDEBAR */
+/* ===== SIDEBAR ===== */
 .sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
   width: 100px;
+  height: 100vh;
   background: #4caf50;
   color: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 16px 8px;
-}
-
-/* Pin the sidebar to the viewport so it sits at the left edge
-   even if a parent container (like #root) adds padding or centers content */
-.sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  height: 100vh;
   z-index: 1000;
 }
 
@@ -197,7 +59,7 @@
   background: transparent;
   color: #ffffff;
   padding: 10px 4px;
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   border-radius: 6px;
   text-align: center;
@@ -213,45 +75,271 @@
   color: #23272f;
 }
 
-/* ===== MAIN DASHBOARD ===== */
-
+/* ===== MAIN CONTENT ===== */
 .dashboard {
-  flex: 1;                 /* take all remaining width */
-  padding: 5px;
+  flex: 1;
+  padding: 16px 20px;
   background: #f5f5f5;
   min-height: 100vh;
   color: #222;
-  /* leave space for the fixed sidebar */
-  margin-left: 70px;
+  margin-left: 100px; /* match sidebar width */
 }
 
-/* On very small screens keep the sidebar inline (not fixed) */
-@media (max-width: 640px) {
+.dashboard-header {
+  margin-bottom: 12px;
+}
+
+.dashboard-header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+/* ===== DASHBOARD GRID ===== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.card h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.big-card {
+  grid-row: span 2;
+}
+
+.small-card {
+  justify-content: flex-start;
+}
+
+.wide-card {
+  grid-column: span 2;
+}
+
+/* ===== TEMPERATURE CARD ===== */
+.card-main-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.chart-wrapper {
+  flex: 1.3;
+  min-width: 0;
+}
+
+.stats-column {
+  flex: 1;
+}
+
+.legend {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+.legend .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.legend .ok {
+  background: #4caf50;
+}
+.legend .warm {
+  background: #ff9800;
+}
+.legend .hot {
+  background: #f44336;
+}
+
+/* ===== METRICS LIST ===== */
+.metrics-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.metrics-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.metrics-list li:last-child {
+  border-bottom: none;
+}
+
+/* ===== BIN BARS ===== */
+.bin-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.bin-bar {
+  width: 100%;
+  max-width: 100%;
+  height: 18px;
+  background: #e6e6e6;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bin-fill {
+  height: 100%;
+  transition: width 600ms ease;
+}
+
+/* ===== EMPTY BIN BUTTON ===== */
+.empty-bin-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.empty-bin-btn {
+  width: 100%;
+  max-width: 220px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ff6b6b, #ff9999);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
+}
+
+.empty-bin-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 107, 107, 0.4);
+  background: linear-gradient(135deg, #ff5252, #ff8888);
+}
+
+.empty-bin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== RESPONSIVE: Tablet (<=1024px) ===== */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .big-card {
+    grid-row: span 1;
+  }
+
+  .wide-card {
+    grid-column: span 2;
+  }
+}
+
+/* ===== RESPONSIVE: Small tablet / large phone (<=768px) ===== */
+@media (max-width: 768px) {
   .sidebar {
-    position: relative;
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
     width: 100%;
     height: auto;
     flex-direction: row;
-    padding: 8px;
+    padding: 6px 8px;
+    justify-content: center;
+    gap: 4px;
   }
-  .sidebar-logo { display: none; }
-  .sidebar-nav { flex-direction: row; gap: 6px; }
-  .nav-item { font-size: 11px; padding: 6px 8px; }
-  .dashboard { margin-left: 0; padding-top: 8px; }
-}
-.empty-bin-btn {
-  background: #ff6b6b;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  width: 220px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  margin-top: 15px;
-  transition: 0.3s ease;
+
+  .sidebar-logo-btn {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    gap: 4px;
+    width: auto;
+  }
+
+  .nav-item {
+    font-size: 11px;
+    padding: 8px 6px;
+    white-space: nowrap;
+  }
+
+  .dashboard {
+    margin-left: 0;
+    padding: 12px 12px 70px 12px; /* bottom padding for fixed bottom nav */
+  }
+
+  .dashboard-header h1 {
+    font-size: 20px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .big-card {
+    grid-row: span 1;
+  }
+
+  .wide-card {
+    grid-column: span 1;
+  }
+
+  .card-main-row {
+    flex-direction: column;
+    gap: 8px;
+  }
 }
 
-.empty-bin-btn:hover {
-  background: #ff4c4c;
+/* ===== RESPONSIVE: Phone (<=480px) ===== */
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 8px 8px 64px 8px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .nav-item {
+    font-size: 10px;
+    padding: 6px 4px;
+  }
+
+  .metrics-list li {
+    font-size: 13px;
+  }
+
+  .empty-bin-btn {
+    max-width: 100%;
+  }
 }

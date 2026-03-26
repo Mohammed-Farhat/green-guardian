@@ -1,51 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import "./RobotSelect.css";
-import RobotFleetMap from "../../services/RobotFleetMap"; // adjust path if needed
+import RobotFleetMap from "../../services/RobotFleetMap";
+import { robotApi } from "../../services/api";
+import { useAuth } from "../../App";
 
-// Mock robot data (with GPS)
-const MOCK_ROBOTS = [
-  {
-    id: 1,
-    name: "Robot Alpha",
-    status: "Active",
-    icon: "🤖",
-    location: "Garden A",
-    lat: 33.6758,
-    lng: 35.4655,
-  },
-  {
-    id: 2,
-    name: "Robot Beta",
-    status: "Active",
-    icon: "🤖",
-    location: "Garden B",
-    lat: 33.6761,
-    lng: 35.4660,
-  },
-  {
-    id: 3,
-    name: "Robot Gamma",
-    status: "Idle",
-    icon: "🤖",
-    location: "Garden C",
-    lat: 33.6754,
-    lng: 35.4663,
-  },
-  {
-    id: 4,
-    name: "Robot Delta",
-    status: "Active",
-    icon: "🤖",
-    location: "Garden D",
-    lat: 33.6759,
-    lng: 35.4650,
-  },
+// Default map coordinates (used when robot has no location data)
+const DEFAULT_COORDS = [
+  { lat: 33.6758, lng: 35.4655 },
+  { lat: 33.6761, lng: 35.466 },
+  { lat: 33.6754, lng: 35.4663 },
+  { lat: 33.6759, lng: 35.465 },
 ];
 
 export default function RobotSelect() {
+  const [robots, setRobots] = useState([]);
   const [selectedRobot, setSelectedRobot] = useState(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  useEffect(() => {
+    fetchRobots();
+  }, []);
+
+  async function fetchRobots() {
+    try {
+      const data = await robotApi.getAll();
+      const mapped = data.map((robot, i) => ({
+        id: robot._id,
+        name: robot.name,
+        status:
+          robot.status === "online"
+            ? "Active"
+            : robot.status === "maintenance"
+            ? "Maintenance"
+            : "Idle",
+        icon: "\u{1F916}",
+        location: robot.location || "",
+        lat: DEFAULT_COORDS[i % DEFAULT_COORDS.length].lat,
+        lng: DEFAULT_COORDS[i % DEFAULT_COORDS.length].lng,
+      }));
+      setRobots(mapped);
+    } catch (err) {
+      toast.error("Failed to load robots: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   function handleSelectRobot(robot) {
     setSelectedRobot(robot);
@@ -59,7 +62,7 @@ export default function RobotSelect() {
   }
 
   function handleLogout() {
-    localStorage.removeItem("gg_token");
+    logout();
     navigate("/login");
   }
 
@@ -72,30 +75,41 @@ export default function RobotSelect() {
         </button>
       </header>
 
-      {/* Cards + Map layout */}
       <div className="robot-layout">
-        {/* LEFT: Cards + Continue button */}
         <div className="left-column">
           <div className="robot-grid">
-            {MOCK_ROBOTS.map((robot) => (
-              <div
-                key={robot.id}
-                className={`robot-card ${
-                  selectedRobot?.id === robot.id ? "selected" : ""
-                }`}
-                onClick={() => handleSelectRobot(robot)}
-              >
-                <div className="robot-icon">{robot.icon}</div>
-                <h3>{robot.name}</h3>
-                <p className="robot-location">{robot.location}</p>
-                <span className={`robot-status ${robot.status.toLowerCase()}`}>
-                  {robot.status}
-                </span>
-              </div>
-            ))}
+            {loading ? (
+              <p style={{ padding: "20px", color: "#999" }}>
+                Loading robots...
+              </p>
+            ) : robots.length === 0 ? (
+              <p style={{ padding: "20px", color: "#999" }}>
+                No robots found. Add robots via the API.
+              </p>
+            ) : (
+              robots.map((robot) => (
+                <div
+                  key={robot.id}
+                  className={`robot-card ${
+                    selectedRobot?.id === robot.id ? "selected" : ""
+                  }`}
+                  onClick={() => handleSelectRobot(robot)}
+                >
+                  <div className="robot-icon" role="img" aria-label="Robot">
+                    {robot.icon}
+                  </div>
+                  <h3>{robot.name}</h3>
+                  <p className="robot-location">{robot.location}</p>
+                  <span
+                    className={`robot-status ${robot.status.toLowerCase()}`}
+                  >
+                    {robot.status}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
 
-          {/* Continue button placed under cards (left column) */}
           <div className="robot-actions-left">
             <button
               className="continue-btn"
@@ -107,10 +121,9 @@ export default function RobotSelect() {
           </div>
         </div>
 
-        {/* RIGHT: Map */}
         <div className="robot-map-wrapper">
           <RobotFleetMap
-            robots={MOCK_ROBOTS}
+            robots={robots}
             selectedRobot={selectedRobot}
             onSelectRobot={handleSelectRobot}
           />

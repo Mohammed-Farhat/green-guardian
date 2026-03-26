@@ -3,7 +3,22 @@ import { MapContainer, TileLayer, CircleMarker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 export default function RobotFleetMap({ robots = [], selectedRobot, onSelectRobot }) {
-  if (!robots || robots.length === 0) return null;
+  if (!robots || robots.length === 0) {
+    return (
+      <div style={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#e8f5e9",
+        borderRadius: "12px",
+        color: "#666",
+        fontSize: "14px",
+      }}>
+        No robots to display on map
+      </div>
+    );
+  }
 
   // Determine center: selected robot or mean of robots
   const center = useMemo(() => {

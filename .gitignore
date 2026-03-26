@@ -253,3 +253,21 @@ compile_commands.json
 
 maps/*.pgm
 maps/*.yaml
+
+# ===== Node.js =====
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===== Frontend (Vite/React) =====
+web/frontend/dist/
+web/frontend/.vite/
+
+# ===== Backend =====
+web/backend/.env
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+Desktop.ini
