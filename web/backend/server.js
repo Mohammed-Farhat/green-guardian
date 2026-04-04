@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const rosBridgeService = require("./services/rosBridgeService");
+const novncService = require("./services/novncService");
 const telemetryRoutes = require("./routes/telemetryRoutes");
 const robotRoutes = require("./routes/robotRoutes");
 const authRoutes = require("./routes/authRoutes");
@@ -36,6 +37,7 @@ const start = async () => {
   try {
     await connectDB();
     rosBridgeService.connect();
+    novncService.start();
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

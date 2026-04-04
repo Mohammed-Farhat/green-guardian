@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/AuthContext";
 import { telemetryApi, robotApi } from "../../services/api";
-import "../dashboard/Dashboard.css";
+import "../dashboard/dashboard.css";
 import "./Manage.css";
 
 export default function Manage() {
@@ -24,6 +24,7 @@ export default function Manage() {
         setRosConnected(false);
       }
     }
+    
 
     fetchStatus();
     const id = setInterval(fetchStatus, 5000);

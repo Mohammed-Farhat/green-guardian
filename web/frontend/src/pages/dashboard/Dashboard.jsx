@@ -10,7 +10,7 @@ import {
   CartesianGrid,
   ResponsiveContainer,
 } from "recharts";
-import "./Dashboard.css";
+import "./dashboard.css";
 import { telemetryApi, robotApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 
