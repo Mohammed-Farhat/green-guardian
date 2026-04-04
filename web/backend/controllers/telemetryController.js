@@ -1,25 +1,16 @@
-const mongoose = require("mongoose");
 const RobotTelemetry = require("../models/RobotTelemetry");
 const rosBridgeService = require("../services/rosBridgeService");
 
-// GET /api/telemetry/:robotId/latest
+// GET /api/telemetry/latest
 const getLatestTelemetry = async (req, res) => {
   try {
-    const { robotId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(robotId)) {
-      return res.status(400).json({ error: "Invalid robot ID" });
-    }
-
     // First try live data from ROS bridge
-    const live = rosBridgeService.getLatestData(robotId);
+    const live = rosBridgeService.getLatestData();
     if (live) {
       return res.json({ source: "live", data: live });
     }
-
     // Fall back to most recent DB record
-    const telemetry = await RobotTelemetry.findOne({ robotId }).sort({
-      timestamp: -1,
-    });
+    const telemetry = await RobotTelemetry.findOne().sort({ timestamp: -1 });
 
     if (!telemetry) {
       return res.status(404).json({ error: "No telemetry found" });
@@ -31,41 +22,13 @@ const getLatestTelemetry = async (req, res) => {
   }
 };
 
-// GET /api/telemetry/:robotId/history?from=&to=&limit=
+// GET /api/telemetry/history?limit=
 const getTelemetryHistory = async (req, res) => {
   try {
-    const { robotId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(robotId)) {
-      return res.status(400).json({ error: "Invalid robot ID" });
-    }
+    const { limit } = req.query;
+    const parsedLimit = Math.min(Math.max(parseInt(limit) || 100, 1), 1000);
 
-    const { from, to, limit } = req.query;
-    const query = { robotId };
-
-    if (from || to) {
-      query.timestamp = {};
-      if (from) {
-        const fromDate = new Date(from);
-        if (isNaN(fromDate.getTime())) {
-          return res.status(400).json({ error: "Invalid 'from' date" });
-        }
-        query.timestamp.$gte = fromDate;
-      }
-      if (to) {
-        const toDate = new Date(to);
-        if (isNaN(toDate.getTime())) {
-          return res.status(400).json({ error: "Invalid 'to' date" });
-        }
-        query.timestamp.$lte = toDate;
-      }
-    }
-
-    const parsedLimit = Math.min(
-      Math.max(parseInt(limit) || 100, 1),
-      1000
-    );
-
-    const telemetry = await RobotTelemetry.find(query)
+    const telemetry = await RobotTelemetry.find()
       .sort({ timestamp: -1 })
       .limit(parsedLimit);
 
@@ -75,18 +38,7 @@ const getTelemetryHistory = async (req, res) => {
   }
 };
 
-// GET /api/telemetry/all/latest
-const getAllLatestTelemetry = async (req, res) => {
-  try {
-    const allLive = rosBridgeService.getAllLatestData();
-    res.json(allLive);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch telemetry" });
-  }
-};
-
 module.exports = {
   getLatestTelemetry,
   getTelemetryHistory,
-  getAllLatestTelemetry,
 };

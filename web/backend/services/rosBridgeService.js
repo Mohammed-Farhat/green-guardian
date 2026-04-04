@@ -1,25 +1,33 @@
 const ROSLIB = require("roslib");
 const RobotTelemetry = require("../models/RobotTelemetry");
-const Robot = require("../models/Robot");
 
 class RosBridgeService {
   constructor() {
     this.ros = null;
-    this.subscribers = {};
-    this.latestData = {}; // { robotId: { speed, temperature, ... } }
+    this.subscribers = [];
+    this.latestData = {
+      speed: 0,
+      cpuTemp: 0,
+      cpuUsage: 0,
+      ramUsage: 0,
+      fanSpeed: 0,
+      binOrganic: 0,
+      binNonOrganic: 0,
+      battery: 0,
+    };
     this.saveInterval = null;
     this.connected = false;
   }
 
   connect() {
-    const url = process.env.ROSBRIDGE_URL || "ws://localhost:9090";
+    const url = process.env.ROSBRIDGE_URL || "ws://192.168.0.94:9090";
 
     this.ros = new ROSLIB.Ros({ url });
 
     this.ros.on("connection", () => {
       console.log(`Connected to ROSBridge at ${url}`);
       this.connected = true;
-      this._subscribeAllRobots();
+      this._subscribeToTopics();
     });
 
     this.ros.on("error", (error) => {
@@ -29,96 +37,55 @@ class RosBridgeService {
     this.ros.on("close", () => {
       console.log("ROSBridge connection closed. Reconnecting in 5s...");
       this.connected = false;
+      this.subscribers = [];
       setTimeout(() => this.connect(), 5000);
     });
 
     this._startSaveInterval();
   }
 
-  async _subscribeAllRobots() {
-    try {
-      const robots = await Robot.find({ status: "online" });
-      for (const robot of robots) {
-        this.subscribeToRobot(robot);
-      }
-    } catch (err) {
-      console.error("Error fetching robots for subscription:", err.message);
-    }
-  }
-
-  subscribeToRobot(robot) {
-    const robotId = robot._id.toString();
-    const topics = robot.rosTopics;
-
-    if (this.subscribers[robotId]) return;
-
-    this.latestData[robotId] = {
-      speed: 0,
-      temperature: 0,
-      humidity: 0,
-      battery: 0,
-      binOrganic: 0,
-      binNonOrganic: 0,
-      cpuTemp: 0,
-      fanSpeed: 0,
-      gps: { lat: 0, lng: 0 },
-    };
-
-    this.subscribers[robotId] = [];
-
+  _subscribeToTopics() {
     // Speed from /odom (nav_msgs/Odometry)
-    this._subscribe(robotId, topics.speed, "nav_msgs/Odometry", (msg) => {
+    this._subscribe("/odom", "nav_msgs/Odometry", (msg) => {
       const vx = msg.twist.twist.linear.x;
       const vy = msg.twist.twist.linear.y;
-      this.latestData[robotId].speed = Math.sqrt(vx * vx + vy * vy);
+      this.latestData.speed = Math.sqrt(vx * vx + vy * vy);
     });
 
-    // Temperature (std_msgs/Float64)
-    this._subscribe(robotId, topics.temperature, "std_msgs/Float64", (msg) => {
-      this.latestData[robotId].temperature = msg.data;
+    // CPU Temperature (std_msgs/Float32)
+    this._subscribe("/system/cpu_temp", "std_msgs/Float32", (msg) => {
+      this.latestData.cpuTemp = msg.data;
     });
 
-    // Humidity (std_msgs/Float64)
-    this._subscribe(robotId, topics.humidity, "std_msgs/Float64", (msg) => {
-      this.latestData[robotId].humidity = msg.data;
+    // CPU Usage (std_msgs/Float32)
+    this._subscribe("/system/cpu_usage", "std_msgs/Float32", (msg) => {
+      this.latestData.cpuUsage = msg.data;
     });
 
-    // GPS (sensor_msgs/NavSatFix)
-    this._subscribe(robotId, topics.gps, "sensor_msgs/NavSatFix", (msg) => {
-      this.latestData[robotId].gps.lat = msg.latitude;
-      this.latestData[robotId].gps.lng = msg.longitude;
+    // RAM Usage (std_msgs/Float32)
+    this._subscribe("/system/ram_usage", "std_msgs/Float32", (msg) => {
+      this.latestData.ramUsage = msg.data;
     });
 
-    // Battery (std_msgs/Float64)
-    this._subscribe(robotId, topics.battery, "std_msgs/Float64", (msg) => {
-      this.latestData[robotId].battery = msg.data;
+    // Fan Speed (std_msgs/Float32)
+    this._subscribe("/system/fan_speed", "std_msgs/Float32", (msg) => {
+      this.latestData.fanSpeed = msg.data;
     });
 
-    // Bin status (custom: { organic: float, nonOrganic: float })
-    this._subscribe(robotId, topics.binStatus, "std_msgs/String", (msg) => {
-      try {
-        const data = JSON.parse(msg.data);
-        this.latestData[robotId].binOrganic = data.organic || 0;
-        this.latestData[robotId].binNonOrganic = data.nonOrganic || 0;
-      } catch {
-        // ignore parse errors
-      }
+    // Organic Bin Level (std_msgs/Float32)
+    this._subscribe("/bins/organic_level", "std_msgs/Float32", (msg) => {
+      this.latestData.binOrganic = msg.data;
     });
 
-    // CPU Temp (std_msgs/Float64)
-    this._subscribe(robotId, topics.cpuTemp, "std_msgs/Float64", (msg) => {
-      this.latestData[robotId].cpuTemp = msg.data;
+    // Non-Organic Bin Level (std_msgs/Float32)
+    this._subscribe("/bins/non_organic_level", "std_msgs/Float32", (msg) => {
+      this.latestData.binNonOrganic = msg.data;
     });
 
-    // Fan Speed (std_msgs/Float64)
-    this._subscribe(robotId, topics.fanSpeed, "std_msgs/Float64", (msg) => {
-      this.latestData[robotId].fanSpeed = msg.data;
-    });
-
-    console.log(`Subscribed to ROS topics for robot: ${robot.name}`);
+    console.log("Subscribed to all ROS2 topics");
   }
 
-  _subscribe(robotId, topic, messageType, callback) {
+  _subscribe(topic, messageType, callback) {
     if (!this.ros || !this.connected) return;
 
     const listener = new ROSLIB.Topic({
@@ -128,67 +95,67 @@ class RosBridgeService {
     });
 
     listener.subscribe(callback);
-    this.subscribers[robotId].push(listener);
+    this.subscribers.push(listener);
   }
 
-  unsubscribeRobot(robotId) {
-    const subs = this.subscribers[robotId];
-    if (subs) {
-      subs.forEach((listener) => listener.unsubscribe());
-      delete this.subscribers[robotId];
-      delete this.latestData[robotId];
-    }
+  // Call /bins/reset service
+  callEmptyBins() {
+    return this._callService("/bins/reset", "std_srvs/Trigger");
+  }
+
+  // Call /robot/shutdown service
+  callShutdown() {
+    return this._callService("/robot/shutdown", "std_srvs/Trigger");
+  }
+
+  _callService(name, type) {
+    return new Promise((resolve, reject) => {
+      if (!this.ros || !this.connected) {
+        return reject(new Error("Not connected to ROSBridge"));
+      }
+
+      const service = new ROSLIB.Service({
+        ros: this.ros,
+        name,
+        serviceType: type,
+      });
+
+      service.callService(new ROSLIB.ServiceRequest({}), resolve, reject);
+    });
   }
 
   _startSaveInterval() {
     const interval = parseInt(process.env.SAVE_INTERVAL_MS) || 10000;
 
     this.saveInterval = setInterval(async () => {
-      await this._saveAllTelemetry();
+      await this._saveTelemetry();
     }, interval);
 
     console.log(`Telemetry save interval: every ${interval / 1000}s`);
   }
 
-  async _saveAllTelemetry() {
-    const robotIds = Object.keys(this.latestData);
-    if (robotIds.length === 0) return;
-
-    const docs = robotIds.map((robotId) => ({
-      robotId,
-      ...this.latestData[robotId],
-      timestamp: new Date(),
-    }));
-
+  async _saveTelemetry() {
     try {
-      await RobotTelemetry.insertMany(docs);
-      console.log(`Saved telemetry for ${docs.length} robot(s)`);
-
-      // Update lastSeen for all robots
-      await Robot.updateMany(
-        { _id: { $in: robotIds } },
-        { lastSeen: new Date() }
-      );
+      await RobotTelemetry.create({
+        ...this.latestData,
+        timestamp: new Date(),
+      });
     } catch (err) {
       console.error("Error saving telemetry:", err.message);
     }
   }
 
-  getLatestData(robotId) {
-    return this.latestData[robotId] || null;
-  }
-
-  getAllLatestData() {
+  getLatestData() {
     return this.latestData;
   }
 
   disconnect() {
     if (this.saveInterval) clearInterval(this.saveInterval);
-    Object.keys(this.subscribers).forEach((id) => this.unsubscribeRobot(id));
+    this.subscribers.forEach((listener) => listener.unsubscribe());
+    this.subscribers = [];
     if (this.ros) this.ros.close();
   }
 }
 
-// Singleton
 const rosBridgeService = new RosBridgeService();
 module.exports = rosBridgeService;

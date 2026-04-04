@@ -1,6 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from 'react-toastify';
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import {
   PieChart,
   Pie,
@@ -14,46 +13,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import "./Dashboard.css";
-import RobotMap from "../../services/RobotMaps";
-import { telemetryApi } from "../../services/api";
+import { telemetryApi, robotApi } from "../../services/api";
 
-const TEMP_COLORS = ["#4caf50", "#ff9800", "#f44336"]; // ok / warm / hot
-
-// Simulate GPS only (location not integrated with backend)
-function simulateGps(prev = { lat: 33.675637, lng: 35.465756 }) {
-  return {
-    lat: Number((prev.lat + (Math.random() - 0.5) * 0.0005).toFixed(6)),
-    lng: Number((prev.lng + (Math.random() - 0.5) * 0.0005).toFixed(6)),
-  };
-}
+const TEMP_COLORS = ["#4caf50", "#ff9800", "#f44336"];
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const [last, setLast] = useState(null);
   const [history, setHistory] = useState([]);
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("overview");
   const [isBinEmpty, setIsBinEmpty] = useState(false);
   const [batteryAlerted, setBatteryAlerted] = useState(false);
   const [apiError, setApiError] = useState(false);
-  const gpsRef = useRef({ lat: 33.675637, lng: 35.465756 });
+  const [shuttingDown, setShuttingDown] = useState(false);
 
-  // Get selected robot ID from localStorage
-  let selectedRobot = null;
-  try {
-    selectedRobot = JSON.parse(localStorage.getItem("selectedRobot") || "null");
-  } catch {
-    // corrupted data
-  }
-  const robotId = selectedRobot?.id || null;
-
-  // Redirect if no robot selected
-  useEffect(() => {
-    if (!robotId) {
-      navigate("/robots", { replace: true });
-    }
-  }, [robotId, navigate]);
-
-  // Battery alert effect
+  // Battery alert
   useEffect(() => {
     if (!last) return;
     if (last.battery <= 20 && !batteryAlerted) {
@@ -67,24 +40,19 @@ export default function Dashboard() {
 
   // Fetch history on mount
   useEffect(() => {
-    if (!robotId) return;
-
     async function loadHistory() {
       try {
-        const data = await telemetryApi.getHistory(robotId, 30);
-        // API returns newest first, reverse for chronological order
+        const data = await telemetryApi.getHistory(30);
         const reversed = data.reverse();
         const mapped = reversed.map((t) => ({
           speed: Number((t.speed || 0).toFixed(2)),
-          temperature: Number((t.temperature || 0).toFixed(2)),
+          cpuTemp: Math.round(t.cpuTemp || 0),
+          cpuUsage: Math.round(t.cpuUsage || 0),
+          ramUsage: Math.round(t.ramUsage || 0),
+          fanSpeed: Math.round(t.fanSpeed || 0),
           binOrganic: Math.round(t.binOrganic || 0),
           binNonOrganic: Math.round(t.binNonOrganic || 0),
-          cpuTemp: Math.round(t.cpuTemp || 0),
-          fanSpeed: Math.round(t.fanSpeed || 0),
-          humidity: Math.round(t.humidity || 0),
           battery: Math.round(t.battery || 0),
-          lat: gpsRef.current.lat,
-          lng: gpsRef.current.lng,
           timestamp: new Date(t.timestamp).getTime(),
           timeLabel: new Date(t.timestamp).toLocaleTimeString(),
         }));
@@ -96,34 +64,25 @@ export default function Dashboard() {
         }
       }
     }
-
     loadHistory();
-  }, [robotId]);
+  }, []);
 
   // Poll latest telemetry every 3 seconds
   useEffect(() => {
-    if (!robotId) return;
-
     const poll = async () => {
       try {
-        const res = await telemetryApi.getLatest(robotId);
+        const res = await telemetryApi.getLatest();
         const t = res.data;
-
-        // Simulate GPS movement (location not integrated)
-        const gps = simulateGps(gpsRef.current);
-        gpsRef.current = gps;
 
         const sample = {
           speed: Number((t.speed || 0).toFixed(2)),
-          temperature: Number((t.temperature || 0).toFixed(2)),
+          cpuTemp: Math.round(t.cpuTemp || 0),
+          cpuUsage: Math.round(t.cpuUsage || 0),
+          ramUsage: Math.round(t.ramUsage || 0),
+          fanSpeed: Math.round(t.fanSpeed || 0),
           binOrganic: Math.round(t.binOrganic || 0),
           binNonOrganic: Math.round(t.binNonOrganic || 0),
-          cpuTemp: Math.round(t.cpuTemp || 0),
-          fanSpeed: Math.round(t.fanSpeed || 0),
-          humidity: Math.round(t.humidity || 0),
           battery: Math.round(t.battery || 0),
-          lat: gps.lat,
-          lng: gps.lng,
           timestamp: Date.now(),
           timeLabel: new Date().toLocaleTimeString(),
         };
@@ -140,22 +99,25 @@ export default function Dashboard() {
     };
 
     const id = setInterval(poll, 3000);
-    poll(); // immediate first fetch
+    poll();
     return () => clearInterval(id);
-  }, [robotId]);
+  }, []);
 
   const tempPieData = (() => {
     if (!last) return [];
-    const t = last.temperature;
+    const t = last.cpuTemp;
     return [
-      { name: "OK", value: t < 30 ? 1 : 0 },
-      { name: "Warm", value: t >= 30 && t < 40 ? 1 : 0 },
-      { name: "Hot", value: t >= 40 ? 1 : 0 },
+      { name: "OK", value: t < 50 ? 1 : 0 },
+      { name: "Warm", value: t >= 50 && t < 70 ? 1 : 0 },
+      { name: "Hot", value: t >= 70 ? 1 : 0 },
     ];
   })();
 
   function handleEmptyBin() {
     setIsBinEmpty(true);
+    robotApi.emptyBins().catch((err) => {
+      toast.error("Failed to empty bins: " + err.message);
+    });
     setTimeout(() => {
       setIsBinEmpty(false);
       setHistory((prev) =>
@@ -171,35 +133,38 @@ export default function Dashboard() {
     }, 2000);
   }
 
+  function handleShutdown() {
+    if (!window.confirm("Are you sure you want to turn off the robot?")) return;
+    setShuttingDown(true);
+    robotApi
+      .shutdown()
+      .then(() => toast.success("Shutdown command sent"))
+      .catch((err) => toast.error("Shutdown failed: " + err.message))
+      .finally(() => setShuttingDown(false));
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <button
-          className="sidebar-logo-btn"
-          onClick={() => navigate("/robots")}
-          aria-label="Go back to robot selection"
-          title="Select another robot"
-        >
-          <div className="sidebar-logo">{"\u{1F916}"}</div>
-        </button>
+        <div className="sidebar-logo">GG</div>
         <nav className="sidebar-nav">
           <button
-            className={`nav-item ${activeTab === "dashboard" ? "active" : ""}`}
-            onClick={() => setActiveTab("dashboard")}
+            className={`nav-item ${activeTab === "overview" ? "active" : ""}`}
+            onClick={() => setActiveTab("overview")}
           >
-            Dashboard
+            Overview
           </button>
           <button
-            className={`nav-item ${activeTab === "bin" ? "active" : ""}`}
-            onClick={() => setActiveTab("bin")}
+            className={`nav-item ${activeTab === "bins" ? "active" : ""}`}
+            onClick={() => setActiveTab("bins")}
           >
-            Bin
+            Bins
           </button>
           <button
-            className={`nav-item ${activeTab === "speed" ? "active" : ""}`}
-            onClick={() => setActiveTab("speed")}
+            className={`nav-item ${activeTab === "system" ? "active" : ""}`}
+            onClick={() => setActiveTab("system")}
           >
-            Speed
+            System
           </button>
           <button
             className={`nav-item ${activeTab === "tracking" ? "active" : ""}`}
@@ -207,13 +172,17 @@ export default function Dashboard() {
           >
             Tracking
           </button>
-          <button
-            className={`nav-item ${activeTab === "details" ? "active" : ""}`}
-            onClick={() => setActiveTab("details")}
-          >
-            System Info
-          </button>
         </nav>
+        <div className="sidebar-bottom">
+          <button
+            className="shutdown-btn"
+            onClick={handleShutdown}
+            disabled={shuttingDown}
+            title="Turn off the robot"
+          >
+            {shuttingDown ? "..." : "Shutdown"}
+          </button>
+        </div>
       </aside>
 
       <main className="dashboard">
@@ -222,11 +191,11 @@ export default function Dashboard() {
         </div>
 
         <div className="dashboard-grid">
-          {/* ===== Dashboard Tab ===== */}
-          {activeTab === "dashboard" && (
+          {/* ===== Overview Tab ===== */}
+          {activeTab === "overview" && (
             <>
               <div className="card big-card">
-                <h3>Temperature Status</h3>
+                <h3>CPU Temperature</h3>
                 {last ? (
                   <>
                     <div className="card-main-row">
@@ -248,62 +217,58 @@ export default function Dashboard() {
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
-
                       <div className="stats-column">
                         <p>
-                          Temperature: <strong>{last.temperature} °C</strong>
+                          CPU Temp: <strong>{last.cpuTemp} °C</strong>
                         </p>
                         <p>
                           Speed: <strong>{last.speed} m/s</strong>
                         </p>
                       </div>
                     </div>
-
                     <div className="legend">
-                      <span className="dot ok" /> OK (&lt; 30°C)
-                      <span className="dot warm" /> Warm (30–39°C)
-                      <span className="dot hot" /> Hot (≥ 40°C)
+                      <span className="dot ok" /> OK (&lt; 50°C)
+                      <span className="dot warm" /> Warm (50–69°C)
+                      <span className="dot hot" /> Hot (&ge; 70°C)
                     </div>
                   </>
                 ) : (
-                  <p>Loading…</p>
+                  <p>Loading...</p>
                 )}
               </div>
 
-              {/* Metrics Card */}
               <div className="card small-card">
                 <h3>Current Metrics</h3>
                 {last ? (
                   <ul className="metrics-list">
                     <li>
-                      <span>Temperature</span>
-                      <strong>{last.temperature} °C</strong>
+                      <span>CPU Temperature</span>
+                      <strong>{last.cpuTemp} °C</strong>
                     </li>
                     <li>
                       <span>Speed</span>
                       <strong>{last.speed} m/s</strong>
                     </li>
                     <li>
-                      <span>Organic Bin Level</span>
+                      <span>Organic Bin</span>
                       <strong>{last.binOrganic} %</strong>
                     </li>
                     <li>
-                      <span>Non-Organic Bin Level</span>
+                      <span>Non-Organic Bin</span>
                       <strong>{last.binNonOrganic} %</strong>
                     </li>
                     <li>
-                      <span>Last update</span>
+                      <span>Last Update</span>
                       <strong>
                         {new Date(last.timestamp).toLocaleTimeString()}
                       </strong>
                     </li>
                   </ul>
                 ) : (
-                  <p>Loading…</p>
+                  <p>Loading...</p>
                 )}
               </div>
 
-              {/* Speed over time */}
               <div className="card wide-card">
                 <h3>Speed Over Time</h3>
                 <ResponsiveContainer width="100%" height={260}>
@@ -326,8 +291,8 @@ export default function Dashboard() {
             </>
           )}
 
-          {/* ===== Bin Tab ===== */}
-          {activeTab === "bin" && (
+          {/* ===== Bins Tab ===== */}
+          {activeTab === "bins" && (
             <>
               <div className="card big-card">
                 <h3>Current Bin Status</h3>
@@ -336,23 +301,37 @@ export default function Dashboard() {
                     <div className="bin-wrapper" style={{ alignItems: "center" }}>
                       <p>Organic:</p>
                       <div className="bin-bar" style={{ height: "30px" }}>
-                        <div className="bin-fill" style={{ width: `${last.binOrganic}%`, backgroundColor: "#4caf50" }} />
+                        <div
+                          className="bin-fill"
+                          style={{
+                            width: `${last.binOrganic}%`,
+                            backgroundColor: "#4caf50",
+                          }}
+                        />
                       </div>
                       <p>{last.binOrganic}% Full</p>
 
                       <p>Non-Organic:</p>
                       <div className="bin-bar" style={{ height: "30px" }}>
-                        <div className="bin-fill" style={{ width: `${last.binNonOrganic}%`, backgroundColor: "#ff9800" }} />
+                        <div
+                          className="bin-fill"
+                          style={{
+                            width: `${last.binNonOrganic}%`,
+                            backgroundColor: "#ff9800",
+                          }}
+                        />
                       </div>
                       <p>{last.binNonOrganic}% Full</p>
 
                       {(last.binOrganic > 90 || last.binNonOrganic > 90) && (
-                        <p style={{ color: "red", fontWeight: "bold" }}>Warning: Bin Almost Full!</p>
+                        <p style={{ color: "red", fontWeight: "bold" }}>
+                          Warning: Bin Almost Full!
+                        </p>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <p>Loading…</p>
+                  <p>Loading...</p>
                 )}
               </div>
 
@@ -365,7 +344,7 @@ export default function Dashboard() {
                     marginBottom: "16px",
                   }}
                 >
-                  Force the robot to empty the bins
+                  Command the robot to empty the bins
                 </p>
                 <button
                   className="empty-bin-btn"
@@ -379,110 +358,8 @@ export default function Dashboard() {
             </>
           )}
 
-          {/* ===== Speed Tab ===== */}
-          {activeTab === "speed" && (
-            <>
-              <div className="card wide-card">
-                <h3>Speed History (m/s)</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={history}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="timeLabel" minTickGap={20} />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey="speed"
-                      stroke="#2196f3"
-                      strokeWidth={3}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="card big-card">
-                <h3>Current Speed</h3>
-                {last ? (
-                  <div style={{ textAlign: "center", padding: "40px 20px" }}>
-                    <div
-                      style={{
-                        fontSize: "64px",
-                        color: "#2196f3",
-                        marginBottom: "20px",
-                      }}
-                    >
-                      {last.speed}
-                    </div>
-                    <p style={{ fontSize: "18px", color: "#666" }}>
-                      meters per second
-                    </p>
-                  </div>
-                ) : (
-                  <p>Loading…</p>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* ===== Tracking Tab ===== */}
-          {activeTab === "tracking" && (
-            <>
-              <div className="card wide-card">
-                <h3>Tracking – Video</h3>
-                <div
-                  className="video-section"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    height: "260px",
-                    background: "#111827",
-                    borderRadius: "12px",
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#e5e7eb",
-                      textAlign: "center",
-                      fontSize: "16px",
-                    }}
-                  >
-                    Live camera stream placeholder
-                    <br />
-                    <span style={{ fontSize: "13px", color: "#9ca3af" }}>
-                      (Embed your RTSP/WebRTC/HTTP stream here)
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="card wide-card">
-                <h3>Tracking – GPS</h3>
-                {last ? (
-                  <div className="gps-section" style={{ padding: "16px" }}>
-                    <div style={{ marginBottom: "16px" }}>
-                      <p style={{ marginBottom: "4px", fontSize: "14px" }}>
-                        Current Position:
-                      </p>
-                      <p style={{ fontWeight: "600", fontSize: "18px" }}>
-                        {last.lat}, {last.lng}
-                      </p>
-                      <p style={{ fontSize: "13px", color: "#666" }}>
-                        Last update: {new Date(last.timestamp).toLocaleTimeString()}
-                      </p>
-                    </div>
-                    <RobotMap lat={last.lat} lng={last.lng} history={history} />
-                  </div>
-                ) : (
-                  <p>Loading…</p>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* ===== System Info Tab ===== */}
-          {activeTab === "details" && (
+          {/* ===== System Tab ===== */}
+          {activeTab === "system" && (
             <>
               <div className="card wide-card">
                 <h3>CPU Temperature Over Time</h3>
@@ -513,18 +390,23 @@ export default function Dashboard() {
                       <strong>{last.cpuTemp}°C</strong>
                     </li>
                     <li>
-                      <span>Fan Speed</span>
-                      <strong>{last.fanSpeed}%</strong>
+                      <span>CPU Usage</span>
+                      <strong>{last.cpuUsage}%</strong>
                     </li>
                     <li>
-                      <span>Humidity</span>
-                      <strong>{last.humidity}%</strong>
+                      <span>RAM Usage</span>
+                      <strong>{last.ramUsage}%</strong>
+                    </li>
+                    <li>
+                      <span>Fan Speed</span>
+                      <strong>{last.fanSpeed} RPM</strong>
                     </li>
                   </ul>
                 ) : (
-                  <p>Loading…</p>
+                  <p>Loading...</p>
                 )}
               </div>
+
               <div className="card small-card">
                 <h3>Battery Level</h3>
                 {last ? (
@@ -554,13 +436,34 @@ export default function Dashboard() {
                         }}
                       />
                     </div>
-                    <p style={{ marginTop: "8px", fontWeight: "600" }}>{last.battery}%</p>
+                    <p style={{ marginTop: "8px", fontWeight: "600" }}>
+                      {last.battery}%
+                    </p>
                   </div>
                 ) : (
-                  <p>Loading…</p>
+                  <p>Loading...</p>
                 )}
               </div>
             </>
+          )}
+
+          {/* ===== Tracking Tab (noVNC / RViz2) ===== */}
+          {activeTab === "tracking" && (
+            <div className="card wide-card tracking-card">
+              <h3>Tracking - RViz2 (via noVNC)</h3>
+              <div className="novnc-wrapper">
+                <iframe
+                  src="http://localhost:6080/vnc.html?autoconnect=true&resize=scale"
+                  title="RViz2 via noVNC"
+                  className="novnc-iframe"
+                  allowFullScreen
+                />
+              </div>
+              <p className="novnc-hint">
+                Streaming RViz2 from the laptop via noVNC. Make sure noVNC is
+                running on port 6080.
+              </p>
+            </div>
           )}
         </div>
       </main>

@@ -3,10 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const rosBridgeService = require("./services/rosBridgeService");
-
-const authRoutes = require("./routes/authRoutes");
-const robotRoutes = require("./routes/robotRoutes");
 const telemetryRoutes = require("./routes/telemetryRoutes");
+const robotRoutes = require("./routes/robotRoutes");
 
 const app = express();
 
@@ -18,14 +16,13 @@ app.use(
       : "*",
   })
 );
-app.use(express.json({ limit: "10mb" }));
+app.use(express.json());
 
 // Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/robots", robotRoutes);
 app.use("/api/telemetry", telemetryRoutes);
+app.use("/api/robot", robotRoutes);
 
-// Health check (public)
+// Health check
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });

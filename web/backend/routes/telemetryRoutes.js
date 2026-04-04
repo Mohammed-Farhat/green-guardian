@@ -1,14 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/auth");
 const {
   getLatestTelemetry,
   getTelemetryHistory,
-  getAllLatestTelemetry,
 } = require("../controllers/telemetryController");
 
-router.get("/all/latest", auth, getAllLatestTelemetry);
-router.get("/:robotId/latest", auth, getLatestTelemetry);
-router.get("/:robotId/history", auth, getTelemetryHistory);
+router.get("/latest", getLatestTelemetry);
+router.get("/history", getTelemetryHistory);
 
 module.exports = router;

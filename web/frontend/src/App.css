@@ -1,4 +1,3 @@
-/* Reset Vite defaults — let each page control its own layout */
 #root {
   min-height: 100vh;
 }

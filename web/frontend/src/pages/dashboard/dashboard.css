@@ -22,28 +22,18 @@
   z-index: 1000;
 }
 
-.sidebar-logo-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  margin-bottom: 24px;
-  transition: transform 0.2s;
-}
-
-.sidebar-logo-btn:hover {
-  transform: scale(1.1);
-}
-
 .sidebar-logo {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
   background: #ffb020;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #23272f;
+  margin-bottom: 24px;
 }
 
 .sidebar-nav {
@@ -51,6 +41,7 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+  flex: 1;
 }
 
 .nav-item {
@@ -75,6 +66,33 @@
   color: #23272f;
 }
 
+.sidebar-bottom {
+  margin-top: auto;
+  width: 100%;
+}
+
+.shutdown-btn {
+  width: 100%;
+  padding: 10px 4px;
+  background: #c33;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.shutdown-btn:hover:not(:disabled) {
+  background: #a22;
+}
+
+.shutdown-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* ===== MAIN CONTENT ===== */
 .dashboard {
   flex: 1;
@@ -82,7 +100,7 @@
   background: #f5f5f5;
   min-height: 100vh;
   color: #222;
-  margin-left: 100px; /* match sidebar width */
+  margin-left: 100px;
 }
 
 .dashboard-header {
@@ -246,6 +264,33 @@
   cursor: not-allowed;
 }
 
+/* ===== TRACKING / noVNC ===== */
+.tracking-card {
+  min-height: 500px;
+}
+
+.novnc-wrapper {
+  flex: 1;
+  min-height: 450px;
+  background: #111827;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.novnc-iframe {
+  width: 100%;
+  height: 100%;
+  min-height: 450px;
+  border: none;
+}
+
+.novnc-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #999;
+  text-align: center;
+}
+
 /* ===== RESPONSIVE: Tablet (<=1024px) ===== */
 @media (max-width: 1024px) {
   .dashboard-grid {
@@ -277,7 +322,7 @@
     gap: 4px;
   }
 
-  .sidebar-logo-btn {
+  .sidebar-logo {
     display: none;
   }
 
@@ -285,6 +330,17 @@
     flex-direction: row;
     gap: 4px;
     width: auto;
+    flex: unset;
+  }
+
+  .sidebar-bottom {
+    margin-top: 0;
+    width: auto;
+  }
+
+  .shutdown-btn {
+    padding: 8px 10px;
+    font-size: 11px;
   }
 
   .nav-item {
@@ -295,7 +351,7 @@
 
   .dashboard {
     margin-left: 0;
-    padding: 12px 12px 70px 12px; /* bottom padding for fixed bottom nav */
+    padding: 12px 12px 70px 12px;
   }
 
   .dashboard-header h1 {

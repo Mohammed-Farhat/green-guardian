@@ -2,21 +2,23 @@ const mongoose = require("mongoose");
 
 const robotTelemetrySchema = new mongoose.Schema(
   {
-    robotId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Robot",
-      required: true,
-      index: true,
-    },
     speed: {
       type: Number,
       default: 0,
     },
-    temperature: {
+    cpuTemp: {
       type: Number,
       default: 0,
     },
-    humidity: {
+    cpuUsage: {
+      type: Number,
+      default: 0,
+    },
+    ramUsage: {
+      type: Number,
+      default: 0,
+    },
+    fanSpeed: {
       type: Number,
       default: 0,
     },
@@ -31,18 +33,6 @@ const robotTelemetrySchema = new mongoose.Schema(
     binNonOrganic: {
       type: Number,
       default: 0,
-    },
-    cpuTemp: {
-      type: Number,
-      default: 0,
-    },
-    fanSpeed: {
-      type: Number,
-      default: 0,
-    },
-    gps: {
-      lat: { type: Number, default: 0 },
-      lng: { type: Number, default: 0 },
     },
     timestamp: {
       type: Date,
