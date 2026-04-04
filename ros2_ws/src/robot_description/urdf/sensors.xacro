@@ -39,7 +39,7 @@
     <origin xyz="${lidar_x} ${lidar_y} ${lidar_standoff_z}" rpy="0 0 0"/>
     <!-- standoff center Z = chassis_top (rel to base_link) + standoff_h/2 -->
     <!-- = 0.033 + 0.0725 = 0.1055 m above base_link -->
-  </joint>c
+  </joint>
 
   <!-- ───────────────────────────────────────────────────────────────
        LASER LINK (LiDAR body cylinder)
