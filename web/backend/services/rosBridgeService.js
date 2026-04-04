@@ -120,7 +120,11 @@ class RosBridgeService {
         serviceType: type,
       });
 
-      service.callService(new ROSLIB.ServiceRequest({}), resolve, reject);
+      service.callService(
+        new ROSLIB.ServiceRequest({}),
+        resolve,
+        (err) => reject(new Error(typeof err === "string" ? err : "Service call failed"))
+      );
     });
   }
 
