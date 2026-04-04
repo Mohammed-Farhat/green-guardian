@@ -93,6 +93,35 @@
   cursor: not-allowed;
 }
 
+.sidebar-user {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.logout-btn-sidebar {
+  width: 100%;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background 0.2s;
+}
+
+.logout-btn-sidebar:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* ===== MAIN CONTENT ===== */
 .dashboard {
   flex: 1;
@@ -188,6 +217,174 @@
 .legend .hot {
   background: #f44336;
 }
+
+/* ===== GAUGES ROW ===== */
+.gauges-card {
+  padding: 20px;
+}
+
+.gauges-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.gauge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 140px;
+  max-width: 220px;
+}
+
+.gauge-item h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.gauge-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+}
+
+.gauge-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ===== SPEEDOMETER ===== */
+.speedo-wrapper {
+  width: 100%;
+  max-width: 200px;
+}
+
+.speedo-svg {
+  width: 100%;
+  height: auto;
+}
+
+/* ===== USAGE BARS ===== */
+.usage-bar-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  height: 150px;
+}
+
+.usage-bar-track {
+  width: 36px;
+  background: #e8e8e8;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.usage-bar-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 8px 8px 0 0;
+  transition: height 0.6s ease, background-color 0.4s ease;
+}
+
+.usage-bar-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #999;
+  padding: 2px 0;
+}
+
+/* ===== THERMOMETER ===== */
+.thermo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+}
+
+.thermometer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.thermo-track {
+  display: flex;
+  gap: 6px;
+  height: 150px;
+  align-items: stretch;
+}
+
+.thermo-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #999;
+  text-align: right;
+  padding: 2px 0;
+}
+
+.thermo-tube {
+  width: 32px;
+  background: #e8e8e8;
+  border-radius: 16px 16px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.thermo-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-radius: 16px 16px 0 0;
+  transition: height 0.6s ease, background-color 0.4s ease;
+}
+
+.thermo-zone {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(0, 0, 0, 0.15);
+}
+
+.thermo-zone.hot-zone {
+  bottom: 70%;
+}
+
+.thermo-zone.warm-zone {
+  bottom: 50%;
+}
+
+.thermo-bulb {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  margin-top: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.4s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.thermo-bulb-value {
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+
 
 /* ===== METRICS LIST ===== */
 .metrics-list {
@@ -308,6 +505,13 @@
 
 /* ===== RESPONSIVE: Small tablet / large phone (<=768px) ===== */
 @media (max-width: 768px) {
+  .gauges-row {
+    gap: 24px;
+  }
+
+  .gauge-item {
+    min-width: 120px;
+  }
   .sidebar {
     position: fixed;
     top: auto;

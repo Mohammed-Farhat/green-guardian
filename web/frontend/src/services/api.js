@@ -1,17 +1,29 @@
 const API_BASE = "/api";
 
+function getAuthHeaders() {
+  const token = localStorage.getItem("token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request(endpoint, options = {}) {
   let res;
   try {
     res = await fetch(`${API_BASE}${endpoint}`, {
       headers: {
         "Content-Type": "application/json",
+        ...getAuthHeaders(),
         ...options.headers,
       },
       ...options,
     });
   } catch {
     throw new Error("Network error - server may be offline");
+  }
+
+  if (res.status === 401) {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+    throw new Error("Session expired");
   }
 
   let data;

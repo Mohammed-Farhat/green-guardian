@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import {
-  PieChart,
-  Pie,
-  Cell,
   LineChart,
   Line,
   XAxis,
@@ -14,10 +12,23 @@ import {
 } from "recharts";
 import "./Dashboard.css";
 import { telemetryApi, robotApi } from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
 
-const TEMP_COLORS = ["#4caf50", "#ff9800", "#f44336"];
+function getTempColor(t) {
+  if (t < 50) return "#4caf50";
+  if (t < 70) return "#ff9800";
+  return "#f44336";
+}
+
+function getTempLabel(t) {
+  if (t < 50) return "OK";
+  if (t < 70) return "Warm";
+  return "Hot";
+}
 
 export default function Dashboard() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [last, setLast] = useState(null);
   const [history, setHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
@@ -103,16 +114,6 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
-  const tempPieData = (() => {
-    if (!last) return [];
-    const t = last.cpuTemp;
-    return [
-      { name: "OK", value: t < 50 ? 1 : 0 },
-      { name: "Warm", value: t >= 50 && t < 70 ? 1 : 0 },
-      { name: "Hot", value: t >= 70 ? 1 : 0 },
-    ];
-  })();
-
   function handleEmptyBin() {
     setIsBinEmpty(true);
     robotApi.emptyBins().catch((err) => {
@@ -172,8 +173,15 @@ export default function Dashboard() {
           >
             Tracking
           </button>
+          <button
+            className="nav-item"
+            onClick={() => navigate("/manage")}
+          >
+            Manage
+          </button>
         </nav>
         <div className="sidebar-bottom">
+          <span className="sidebar-user">{user?.name}</span>
           <button
             className="shutdown-btn"
             onClick={handleShutdown}
@@ -181,6 +189,13 @@ export default function Dashboard() {
             title="Turn off the robot"
           >
             {shuttingDown ? "..." : "Shutdown"}
+          </button>
+          <button
+            className="logout-btn-sidebar"
+            onClick={logout}
+            title="Log out"
+          >
+            Logout
           </button>
         </div>
       </aside>
@@ -194,76 +209,154 @@ export default function Dashboard() {
           {/* ===== Overview Tab ===== */}
           {activeTab === "overview" && (
             <>
-              <div className="card big-card">
-                <h3>CPU Temperature</h3>
+              <div className="card wide-card gauges-card">
                 {last ? (
-                  <>
-                    <div className="card-main-row">
-                      <div className="chart-wrapper">
-                        <ResponsiveContainer width="100%" height={240}>
-                          <PieChart>
-                            <Pie
-                              data={tempPieData}
-                              innerRadius={70}
-                              outerRadius={100}
-                              paddingAngle={3}
-                              dataKey="value"
-                              isAnimationActive={false}
-                            >
-                              {tempPieData.map((entry, index) => (
-                                <Cell key={entry.name} fill={TEMP_COLORS[index]} />
-                              ))}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
+                  <div className="gauges-row">
+                    {/* Thermometer */}
+                    <div className="gauge-item">
+                      <h3>CPU Temp</h3>
+                      <div className="thermo-container">
+                        <div className="thermometer">
+                          <div className="thermo-track">
+                            <div className="thermo-scale">
+                              <span>100°</span>
+                              <span>70°</span>
+                              <span>50°</span>
+                              <span>0°</span>
+                            </div>
+                            <div className="thermo-tube">
+                              <div
+                                className="thermo-fill"
+                                style={{
+                                  height: `${Math.min(last.cpuTemp, 100)}%`,
+                                  backgroundColor: getTempColor(last.cpuTemp),
+                                }}
+                              />
+                              <div className="thermo-zone hot-zone" />
+                              <div className="thermo-zone warm-zone" />
+                            </div>
+                          </div>
+                          <div className="thermo-bulb" style={{ backgroundColor: getTempColor(last.cpuTemp) }}>
+                            <span className="thermo-bulb-value">{last.cpuTemp}°</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="stats-column">
-                        <p>
-                          CPU Temp: <strong>{last.cpuTemp} °C</strong>
-                        </p>
-                        <p>
-                          Speed: <strong>{last.speed} m/s</strong>
-                        </p>
-                      </div>
+                      <span className="gauge-value" style={{ color: getTempColor(last.cpuTemp) }}>
+                        {last.cpuTemp}°C
+                      </span>
+                      <span className="gauge-label">{getTempLabel(last.cpuTemp)}</span>
                     </div>
-                    <div className="legend">
-                      <span className="dot ok" /> OK (&lt; 50°C)
-                      <span className="dot warm" /> Warm (50–69°C)
-                      <span className="dot hot" /> Hot (&ge; 70°C)
-                    </div>
-                  </>
-                ) : (
-                  <p>Loading...</p>
-                )}
-              </div>
 
-              <div className="card small-card">
-                <h3>Current Metrics</h3>
-                {last ? (
-                  <ul className="metrics-list">
-                    <li>
-                      <span>CPU Temperature</span>
-                      <strong>{last.cpuTemp} °C</strong>
-                    </li>
-                    <li>
-                      <span>Speed</span>
-                      <strong>{last.speed} m/s</strong>
-                    </li>
-                    <li>
-                      <span>Organic Bin</span>
-                      <strong>{last.binOrganic} %</strong>
-                    </li>
-                    <li>
-                      <span>Non-Organic Bin</span>
-                      <strong>{last.binNonOrganic} %</strong>
-                    </li>
-                    <li>
-                      <span>Last Update</span>
-                      <strong>
-                        {new Date(last.timestamp).toLocaleTimeString()}
-                      </strong>
-                    </li>
-                  </ul>
+                    {/* Speedometer */}
+                    <div className="gauge-item">
+                      <h3>Speed</h3>
+                      <div className="speedo-wrapper">
+                        <svg viewBox="0 0 200 130" className="speedo-svg">
+                          {/* Background arc */}
+                          <path
+                            d="M 20 120 A 80 80 0 0 1 180 120"
+                            fill="none"
+                            stroke="#e8e8e8"
+                            strokeWidth="14"
+                            strokeLinecap="round"
+                          />
+                          {/* Green zone 0-4 */}
+                          <path
+                            d="M 20 120 A 80 80 0 0 1 52.15 52.15"
+                            fill="none"
+                            stroke="#4caf50"
+                            strokeWidth="14"
+                            strokeLinecap="round"
+                          />
+                          {/* Orange zone 4-7 */}
+                          <path
+                            d="M 52.15 52.15 A 80 80 0 0 1 100 40"
+                            fill="none"
+                            stroke="#ff9800"
+                            strokeWidth="14"
+                          />
+                          <path
+                            d="M 100 40 A 80 80 0 0 1 131.76 47.61"
+                            fill="none"
+                            stroke="#ff9800"
+                            strokeWidth="14"
+                          />
+                          {/* Red zone 7-10 */}
+                          <path
+                            d="M 131.76 47.61 A 80 80 0 0 1 180 120"
+                            fill="none"
+                            stroke="#f44336"
+                            strokeWidth="14"
+                            strokeLinecap="round"
+                          />
+                          {/* Needle */}
+                          <line
+                            x1="100"
+                            y1="120"
+                            x2={100 + 68 * Math.cos(Math.PI + (Math.min(last.speed, 10) / 10) * Math.PI)}
+                            y2={120 + 68 * Math.sin(Math.PI + (Math.min(last.speed, 10) / 10) * Math.PI)}
+                            stroke="#c33"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          />
+                          {/* Center dot */}
+                          <circle cx="100" cy="120" r="6" fill="#c33" />
+                          <circle cx="100" cy="120" r="3" fill="#fff" />
+                        </svg>
+                      </div>
+                      <span className="gauge-value">{last.speed} m/s</span>
+                    </div>
+
+                    {/* CPU Usage bar */}
+                    <div className="gauge-item">
+                      <h3>CPU Usage</h3>
+                      <div className="usage-bar-wrapper">
+                        <div className="usage-bar-track">
+                          <div
+                            className="usage-bar-fill"
+                            style={{
+                              height: `${last.cpuUsage}%`,
+                              backgroundColor:
+                                last.cpuUsage < 60 ? "#4caf50" : last.cpuUsage < 85 ? "#ff9800" : "#f44336",
+                            }}
+                          />
+                        </div>
+                        <div className="usage-bar-labels">
+                          <span>100%</span>
+                          <span>75%</span>
+                          <span>50%</span>
+                          <span>25%</span>
+                          <span>0%</span>
+                        </div>
+                      </div>
+                      <span className="gauge-value">{last.cpuUsage}%</span>
+                    </div>
+
+                    {/* RAM Usage bar */}
+                    <div className="gauge-item">
+                      <h3>RAM Usage</h3>
+                      <div className="usage-bar-wrapper">
+                        <div className="usage-bar-track">
+                          <div
+                            className="usage-bar-fill"
+                            style={{
+                              height: `${last.ramUsage}%`,
+                              backgroundColor:
+                                last.ramUsage < 60 ? "#2196f3" : last.ramUsage < 85 ? "#ff9800" : "#f44336",
+                            }}
+                          />
+                        </div>
+                        <div className="usage-bar-labels">
+                          <span>100%</span>
+                          <span>75%</span>
+                          <span>50%</span>
+                          <span>25%</span>
+                          <span>0%</span>
+                        </div>
+                      </div>
+                      <span className="gauge-value">{last.ramUsage}%</span>
+                    </div>
+                  </div>
                 ) : (
                   <p>Loading...</p>
                 )}
@@ -362,12 +455,12 @@ export default function Dashboard() {
           {activeTab === "system" && (
             <>
               <div className="card wide-card">
-                <h3>CPU Temperature Over Time</h3>
+                <h3>CPU Temp / CPU Usage / RAM Usage Over Time</h3>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={history}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="timeLabel" minTickGap={20} />
-                    <YAxis domain={[30, 100]} />
+                    <YAxis domain={[0, 100]} />
                     <Tooltip />
                     <Line
                       isAnimationActive={false}
@@ -376,6 +469,25 @@ export default function Dashboard() {
                       stroke="#9c27b0"
                       strokeWidth={2}
                       dot={false}
+                      name="CPU Temp (°C)"
+                    />
+                    <Line
+                      isAnimationActive={false}
+                      type="monotone"
+                      dataKey="cpuUsage"
+                      stroke="#4caf50"
+                      strokeWidth={2}
+                      dot={false}
+                      name="CPU Usage (%)"
+                    />
+                    <Line
+                      isAnimationActive={false}
+                      type="monotone"
+                      dataKey="ramUsage"
+                      stroke="#2196f3"
+                      strokeWidth={2}
+                      dot={false}
+                      name="RAM Usage (%)"
                     />
                   </LineChart>
                 </ResponsiveContainer>

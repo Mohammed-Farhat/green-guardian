@@ -1,0 +1,167 @@
+.manage-page {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.manage-content {
+  flex: 1;
+  margin-left: 100px;
+  padding: 16px 20px;
+}
+
+.manage-content h1 {
+  font-size: 24px;
+  margin: 0 0 20px;
+  color: #222;
+}
+
+.manage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.manage-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.manage-card h3 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  color: #333;
+}
+
+.robot-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-dot.online {
+  background: #4caf50;
+}
+
+.status-dot.offline {
+  background: #f44336;
+}
+
+.manage-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.manage-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.manage-btn.primary {
+  background: #4caf50;
+  color: #fff;
+}
+
+.manage-btn.primary:hover:not(:disabled) {
+  background: #388e3c;
+}
+
+.manage-btn.danger {
+  background: #c33;
+  color: #fff;
+}
+
+.manage-btn.danger:hover:not(:disabled) {
+  background: #a22;
+}
+
+.manage-btn.secondary {
+  background: #ff9800;
+  color: #fff;
+}
+
+.manage-btn.secondary:hover:not(:disabled) {
+  background: #e68a00;
+}
+
+.manage-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.robot-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+}
+
+.robot-info-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.robot-info-list li:last-child {
+  border-bottom: none;
+}
+
+.user-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.user-info-card p {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.user-info-card strong {
+  color: #222;
+}
+
+.logout-btn {
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: #eee;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.logout-btn:hover {
+  background: #ddd;
+}
+
+@media (max-width: 768px) {
+  .manage-content {
+    margin-left: 0;
+    padding: 12px 12px 70px 12px;
+  }
+
+  .manage-grid {
+    grid-template-columns: 1fr;
+  }
+}

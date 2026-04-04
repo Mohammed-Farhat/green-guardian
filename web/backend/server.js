@@ -5,6 +5,8 @@ const connectDB = require("./config/db");
 const rosBridgeService = require("./services/rosBridgeService");
 const telemetryRoutes = require("./routes/telemetryRoutes");
 const robotRoutes = require("./routes/robotRoutes");
+const authRoutes = require("./routes/authRoutes");
+const { auth } = require("./middleware/auth");
 
 const app = express();
 
@@ -19,8 +21,9 @@ app.use(
 app.use(express.json());
 
 // Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/telemetry", telemetryRoutes);
-app.use("/api/robot", robotRoutes);
+app.use("/api/robot", auth, robotRoutes);
 
 // Health check
 app.get("/api/health", (req, res) => {
