@@ -1,0 +1,31 @@
+motor_bridge:
+  ros__parameters:
+
+    # ── Serial port ──────────────────────────────────────────────
+    # Find your port with: ls /dev/tty* before and after plugging Arduino
+    # Pi5 common values: /dev/ttyUSB0  or  /dev/ttyACM0
+    serial_port: /dev/ttyUSB0
+    baud_rate: 115200
+
+    # ── Wheel geometry (measured) ────────────────────────────────
+    wheel_radius: 0.0375        # meters — 75mm diameter / 2
+    track_width:  0.341         # meters — center-to-center left/right wheels
+
+    # ── Encoder calibration ──────────────────────────────────────
+    # Measured empirically: 10 revolutions = ~2929 ticks average
+    # ticks_per_rev = 2929 / 10 = 293
+    ticks_per_rev: 293
+
+    # ── Velocity scaling ─────────────────────────────────────────
+    # Maximum robot velocity in m/s at max PWM (249)
+    # ⚠️ NEEDS TUNING: measure actual max speed on ground with battery
+    # If robot overshoots targets → decrease this value
+    # If robot undershoots targets → increase this value
+    max_velocity: 0.5           # m/s — estimated, tune after ground testing
+
+    # ── Safety ───────────────────────────────────────────────────
+    max_pwm: 249                # 98% of 255 — DBH-1B hardware limit
+
+    # ── Watchdog ─────────────────────────────────────────────────
+    # Stop motors if no /cmd_vel received within this time
+    cmd_vel_timeout: 0.5        # seconds
