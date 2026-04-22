@@ -70,7 +70,9 @@ class MotorBridge(Node):
         self.x      = 0.0
         self.y      = 0.0
         self.theta  = 0.0
-        self.odom_lock = threading.Lock()
+        self.odom_lock       = threading.Lock()
+        self._last_odom_time = None   # wall-clock time of last encoder message
+        self._motors_stopped = False  # True once watchdog stops; reset by cmd_vel
 
         # ── QoS profile ──────────────────────────────────────────
         # Sensor data QoS — best effort, volatile (standard for odom/cmd_vel)
@@ -151,8 +153,13 @@ class MotorBridge(Node):
                 # OK lines are intentionally ignored — no need to log them
 
             except serial.SerialException as e:
-                self.get_logger().error(f'Serial read error: {e}')
-                time.sleep(0.1)
+                self.get_logger().error(f'Serial read error: {e} — attempting reconnect')
+                try:
+                    self.serial_conn.close()
+                except Exception:
+                    pass
+                self.serial_conn = None
+                self._connect_serial()
             except Exception as e:
                 self.get_logger().error(f'Unexpected read error: {e}')
 
@@ -161,7 +168,8 @@ class MotorBridge(Node):
     # Differential drive kinematics: Twist → left/right PWM
     # ================================================================
     def cmd_vel_callback(self, msg: Twist):
-        self.last_cmd_time = time.time()
+        self.last_cmd_time   = time.time()
+        self._motors_stopped = False
 
         linear  = msg.linear.x    # m/s  (+forward, -backward)
         angular = msg.angular.z   # rad/s (+left, -right)
@@ -192,7 +200,9 @@ class MotorBridge(Node):
     def watchdog_callback(self):
         """Stop motors if no /cmd_vel received within timeout."""
         if time.time() - self.last_cmd_time > self.cmd_timeout:
-            self._send_motor_command(0, 0)
+            if not self._motors_stopped:
+                self._send_motor_command(0, 0)
+                self._motors_stopped = True
 
     # ================================================================
     # ODOMETRY
@@ -213,6 +223,14 @@ class MotorBridge(Node):
             self.get_logger().warn(f'Malformed odometry line: {line}')
             return
 
+        # Measure actual elapsed time since last encoder message
+        now_wall = time.time()
+        if self._last_odom_time is None or (now_wall - self._last_odom_time) <= 0.0:
+            dt = 0.05   # safe fallback for the very first message
+        else:
+            dt = now_wall - self._last_odom_time
+        self._last_odom_time = now_wall
+
         # Convert ticks to meters
         d_left  = left_ticks  * self.m_per_tick
         d_right = right_ticks * self.m_per_tick
@@ -224,9 +242,11 @@ class MotorBridge(Node):
         d_theta  = (d_right - d_left) / self.track_width
 
         with self.odom_lock:
+            # Integrate position using midpoint angle to minimise heading error
+            mid_theta   = self.theta + d_theta / 2.0
             self.theta += d_theta
-            self.x     += d_center * math.cos(self.theta)
-            self.y     += d_center * math.sin(self.theta)
+            self.x     += d_center * math.cos(mid_theta)
+            self.y     += d_center * math.sin(mid_theta)
 
             # Keep theta in [-pi, pi]
             self.theta = math.atan2(
@@ -239,9 +259,6 @@ class MotorBridge(Node):
         # Quaternion from yaw angle (rotation around Z only)
         qz = math.sin(theta / 2.0)
         qw = math.cos(theta / 2.0)
-
-        # Odometry interval = 50ms (Arduino sends at 20Hz)
-        dt = 0.05
 
         # ── Publish /odom ────────────────────────────────────────
         odom                         = Odometry()
