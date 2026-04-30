@@ -9,21 +9,100 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 import "./dashboard.css";
 import { telemetryApi, robotApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import ManualControl from "./ManualControl";
 
-function getTempColor(t) {
-  if (t < 50) return "#4caf50";
-  if (t < 70) return "#ff9800";
-  return "#f44336";
+const NOVNC_URL =
+  import.meta.env.VITE_NOVNC_URL ||
+  "http://192.168.0.165:6080/vnc.html?autoconnect=true&resize=scale";
+
+const CHART_DARK = {
+  grid: { stroke: "rgba(255,255,255,0.06)", strokeDasharray: "3 3" },
+  tick: { fill: "#475569", fontSize: 11 },
+  tooltip: {
+    contentStyle: {
+      background: "rgba(13,17,23,0.95)",
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: "10px",
+      color: "#e2e8f0",
+    },
+    labelStyle: { color: "#94a3b8" },
+    itemStyle: { color: "#e2e8f0" },
+  },
+};
+
+function tempColor(t) {
+  if (t < 50) return "#39ff14";
+  if (t < 70) return "#ffaa00";
+  return "#ff006e";
 }
 
-function getTempLabel(t) {
-  if (t < 50) return "OK";
-  if (t < 70) return "Warm";
-  return "Hot";
+function usageColor(u) {
+  if (u < 60) return "#00d4ff";
+  if (u < 85) return "#ffaa00";
+  return "#ff006e";
+}
+
+function batteryColor(b) {
+  if (b > 50) return "#39ff14";
+  if (b > 20) return "#ffaa00";
+  return "#ff006e";
+}
+
+// SVG arc gauge helper — draws a half-circle arc gauge
+function ArcGauge({ value, max = 100, color, size = 120 }) {
+  const r = 50;
+  const cx = 60;
+  const cy = 60;
+  const circ = Math.PI * r;
+  const pct = Math.min(value / max, 1);
+  const offset = circ * (1 - pct);
+
+  return (
+    <svg viewBox="0 0 120 68" className="metric-arc-svg" style={{ width: size, height: size * 0.57 }}>
+      <path
+        d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+        fill="none"
+        stroke="rgba(255,255,255,0.07)"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
+      <path
+        d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
+        fill="none"
+        stroke={color}
+        strokeWidth="10"
+        strokeLinecap="round"
+        strokeDasharray={`${circ}`}
+        strokeDashoffset={`${offset}`}
+        style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1)", filter: `drop-shadow(0 0 5px ${color})` }}
+      />
+    </svg>
+  );
+}
+
+// SVG donut for bins
+function DonutGauge({ value, color }) {
+  const r = 62;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(value / 100, 1));
+
+  return (
+    <svg className="donut-svg" viewBox="0 0 160 160">
+      <circle className="donut-track" cx="80" cy="80" r={r} />
+      <circle
+        className="donut-ring"
+        cx="80" cy="80" r={r}
+        stroke={color}
+        strokeDasharray={`${circ}`}
+        strokeDashoffset={`${offset}`}
+      />
+    </svg>
+  );
 }
 
 export default function Dashboard() {
@@ -40,8 +119,8 @@ export default function Dashboard() {
   // Battery alert
   useEffect(() => {
     if (!last) return;
-    if (last.battery <= 20 && !batteryAlerted) {
-      toast.error("Battery critical (20%) - Robot needs charging!");
+    if (last.battery > 0 && last.battery <= 20 && !batteryAlerted) {
+      toast.error("Battery critical (≤20%) — Robot needs charging!");
       setBatteryAlerted(true);
     }
     if (last.battery > 25 && batteryAlerted) {
@@ -54,19 +133,7 @@ export default function Dashboard() {
     async function loadHistory() {
       try {
         const data = await telemetryApi.getHistory(30);
-        const reversed = data.reverse();
-        const mapped = reversed.map((t) => ({
-          speed: Number((t.speed || 0).toFixed(2)),
-          cpuTemp: Math.round(t.cpuTemp || 0),
-          cpuUsage: Math.round(t.cpuUsage || 0),
-          ramUsage: Math.round(t.ramUsage || 0),
-          fanSpeed: Math.round(t.fanSpeed || 0),
-          binOrganic: Math.round(t.binOrganic || 0),
-          binNonOrganic: Math.round(t.binNonOrganic || 0),
-          battery: Math.round(t.battery || 0),
-          timestamp: new Date(t.timestamp).getTime(),
-          timeLabel: new Date(t.timestamp).toLocaleTimeString(),
-        }));
+        const mapped = data.reverse().map(mapTelemetry);
         setHistory(mapped);
         if (mapped.length > 0) setLast(mapped[mapped.length - 1]);
       } catch (err) {
@@ -83,29 +150,13 @@ export default function Dashboard() {
     const poll = async () => {
       try {
         const res = await telemetryApi.getLatest();
-        const t = res.data;
-
-        const sample = {
-          speed: Number((t.speed || 0).toFixed(2)),
-          cpuTemp: Math.round(t.cpuTemp || 0),
-          cpuUsage: Math.round(t.cpuUsage || 0),
-          ramUsage: Math.round(t.ramUsage || 0),
-          fanSpeed: Math.round(t.fanSpeed || 0),
-          binOrganic: Math.round(t.binOrganic || 0),
-          binNonOrganic: Math.round(t.binNonOrganic || 0),
-          battery: Math.round(t.battery || 0),
-          timestamp: Date.now(),
-          timeLabel: new Date().toLocaleTimeString(),
-        };
-
+        const sample = mapTelemetry(res.data);
         setLast(sample);
         setHistory((prev) => [...prev, sample].slice(-30));
         setApiError(false);
       } catch (err) {
-        if (!apiError) {
-          console.error("Telemetry poll failed:", err.message);
-          setApiError(true);
-        }
+        console.error("Telemetry poll failed:", err.message);
+        setApiError(true);
       }
     };
 
@@ -114,469 +165,390 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
-  function handleEmptyBin() {
+  function mapTelemetry(t) {
+    return {
+      speed: Number((t.speed || 0).toFixed(2)),
+      cpuTemp: Math.round(t.cpuTemp || 0),
+      cpuUsage: Math.round(t.cpuUsage || 0),
+      ramUsage: Math.round(t.ramUsage || 0),
+      fanSpeed: Math.round(t.fanSpeed || 0),
+      binOrganic: Math.round(t.binOrganic || 0),
+      binNonOrganic: Math.round(t.binNonOrganic || 0),
+      battery: Math.round(t.battery || 0),
+      timestamp: t.timestamp ? new Date(t.timestamp).getTime() : Date.now(),
+      timeLabel: t.timestamp
+        ? new Date(t.timestamp).toLocaleTimeString()
+        : new Date().toLocaleTimeString(),
+    };
+  }
+
+  async function handleEmptyBin() {
+    if (isBinEmpty) return;
     setIsBinEmpty(true);
-    robotApi.emptyBins().catch((err) => {
-      toast.error("Failed to empty bins: " + err.message);
-    });
-    setTimeout(() => {
-      setIsBinEmpty(false);
+    try {
+      await robotApi.emptyBins();
+      setLast((prev) => prev ? { ...prev, binOrganic: 0, binNonOrganic: 0 } : null);
       setHistory((prev) =>
         prev.map((item, idx) =>
-          idx === prev.length - 1
-            ? { ...item, binOrganic: 0, binNonOrganic: 0 }
-            : item
+          idx === prev.length - 1 ? { ...item, binOrganic: 0, binNonOrganic: 0 } : item
         )
       );
-      setLast((prev) =>
-        prev ? { ...prev, binOrganic: 0, binNonOrganic: 0 } : null
-      );
-    }, 2000);
+      toast.success("Bins emptied successfully!");
+    } catch (err) {
+      toast.error("Failed to empty bins: " + err.message);
+    } finally {
+      setIsBinEmpty(false);
+    }
   }
 
   function handleShutdown() {
-    if (!window.confirm("Are you sure you want to turn off the robot?")) return;
+    if (!window.confirm("Shut down the robot? This will stop all operations.")) return;
     setShuttingDown(true);
     robotApi
       .shutdown()
-      .then(() => toast.success("Shutdown command sent"))
+      .then(() => toast.success("Shutdown command sent to robot"))
       .catch((err) => toast.error("Shutdown failed: " + err.message))
       .finally(() => setShuttingDown(false));
   }
 
+  const batteryDisplay = last?.battery > 0 ? `${last.battery}%` : "--";
+  const userInitial = user?.name ? user.name[0].toUpperCase() : "?";
+
+  const NAV = [
+    { id: "overview", icon: "◈", label: "Overview" },
+    { id: "bins",     icon: "⬡", label: "Bins" },
+    { id: "system",   icon: "⊞", label: "System" },
+    { id: "control",  icon: "⊕", label: "Control" },
+    { id: "tracking", icon: "◉", label: "Tracking" },
+  ];
+
   return (
     <div className="app-shell">
+      {apiError && (
+        <div className="api-error-banner">
+          ⚠ Telemetry connection lost — retrying...
+        </div>
+      )}
+
       <aside className="sidebar">
-        <div className="sidebar-logo">GG</div>
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon">GG</div>
+          <div>
+            <div className="sidebar-logo-text">Green Guardian</div>
+            <div className="sidebar-logo-sub">Robot Dashboard</div>
+          </div>
+        </div>
+
         <nav className="sidebar-nav">
-          <button
-            className={`nav-item ${activeTab === "overview" ? "active" : ""}`}
-            onClick={() => setActiveTab("overview")}
-          >
-            Overview
-          </button>
-          <button
-            className={`nav-item ${activeTab === "bins" ? "active" : ""}`}
-            onClick={() => setActiveTab("bins")}
-          >
-            Bins
-          </button>
-          <button
-            className={`nav-item ${activeTab === "system" ? "active" : ""}`}
-            onClick={() => setActiveTab("system")}
-          >
-            System
-          </button>
-          <button
-            className={`nav-item ${activeTab === "tracking" ? "active" : ""}`}
-            onClick={() => setActiveTab("tracking")}
-          >
-            Tracking
-          </button>
-          <button
-            className="nav-item"
-            onClick={() => navigate("/manage")}
-          >
+          {NAV.map((n) => (
+            <button
+              key={n.id}
+              className={`nav-item${activeTab === n.id ? " active" : ""}`}
+              onClick={() => setActiveTab(n.id)}
+            >
+              <span className="nav-icon">{n.icon}</span>
+              {n.label}
+            </button>
+          ))}
+
+          <div className="nav-divider" />
+
+          <button className="nav-item" onClick={() => navigate("/manage")}>
+            <span className="nav-icon">⚙</span>
             Manage
           </button>
         </nav>
+
         <div className="sidebar-bottom">
-          <span className="sidebar-user">{user?.name}</span>
+          <div className="sidebar-user">
+            <div className="user-avatar">{userInitial}</div>
+            <span className="user-name">{user?.name}</span>
+          </div>
           <button
             className="shutdown-btn"
             onClick={handleShutdown}
             disabled={shuttingDown}
-            title="Turn off the robot"
           >
-            {shuttingDown ? "..." : "Shutdown"}
+            {shuttingDown ? "Shutting down..." : "⏻ Shutdown Robot"}
           </button>
-          <button
-            className="logout-btn-sidebar"
-            onClick={logout}
-            title="Log out"
-          >
-            Logout
+          <button className="logout-btn-sidebar" onClick={logout}>
+            ↩ Logout
           </button>
         </div>
       </aside>
 
       <main className="dashboard">
         <div className="dashboard-header">
-          <h1>Green Guardian Dashboard</h1>
+          <h1>
+            {NAV.find((n) => n.id === activeTab)?.icon}{" "}
+            {NAV.find((n) => n.id === activeTab)?.label ||
+              (activeTab === "tracking" ? "Tracking" : "")}
+          </h1>
+          <div className="header-right">
+            <div className={`live-indicator${apiError ? " offline" : ""}`}>
+              <span className="live-dot" />
+              {apiError ? "Offline" : "Live"}
+            </div>
+          </div>
         </div>
 
         <div className="dashboard-grid">
-          {/* ===== Overview Tab ===== */}
+
+          {/* ===== OVERVIEW TAB ===== */}
           {activeTab === "overview" && (
             <>
-              <div className="card wide-card gauges-card">
-                {last ? (
-                  <div className="gauges-row">
-                    {/* Thermometer */}
-                    <div className="gauge-item">
-                      <h3>CPU Temp</h3>
-                      <div className="thermo-container">
-                        <div className="thermometer">
-                          <div className="thermo-track">
-                            <div className="thermo-scale">
-                              <span>100°</span>
-                              <span>70°</span>
-                              <span>50°</span>
-                              <span>0°</span>
-                            </div>
-                            <div className="thermo-tube">
-                              <div
-                                className="thermo-fill"
-                                style={{
-                                  height: `${Math.min(last.cpuTemp, 100)}%`,
-                                  backgroundColor: getTempColor(last.cpuTemp),
-                                }}
-                              />
-                              <div className="thermo-zone hot-zone" />
-                              <div className="thermo-zone warm-zone" />
-                            </div>
+              {/* Hero Stats */}
+              <div className="grid-row grid-row-3">
+                <div className="hero-stat-card" style={{ "--hero-accent": "#00d4ff" }}>
+                  <p className="hero-stat-label">Speed</p>
+                  {last ? (
+                    <>
+                      <div>
+                        <span className="hero-stat-value">{last.speed}</span>
+                        <span className="hero-stat-unit"> m/s</span>
+                      </div>
+                      <p className="hero-stat-sub" style={{ color: last.speed > 7 ? "#ff006e" : last.speed > 4 ? "#ffaa00" : "#39ff14" }}>
+                        {last.speed > 7 ? "Fast" : last.speed > 4 ? "Moderate" : last.speed > 0 ? "Slow" : "Stationary"}
+                      </p>
+                    </>
+                  ) : <div className="skeleton" style={{ height: 48, width: 100, marginTop: 12 }} />}
+                </div>
+
+                <div className="hero-stat-card" style={{ "--hero-accent": tempColor(last?.cpuTemp || 0) }}>
+                  <p className="hero-stat-label">CPU Temp</p>
+                  {last ? (
+                    <>
+                      <div>
+                        <span className="hero-stat-value" style={{ color: tempColor(last.cpuTemp) }}>
+                          {last.cpuTemp}
+                        </span>
+                        <span className="hero-stat-unit"> °C</span>
+                      </div>
+                      <p className="hero-stat-sub" style={{ color: tempColor(last.cpuTemp) }}>
+                        {last.cpuTemp < 50 ? "Normal" : last.cpuTemp < 70 ? "Warm" : "Hot"}
+                      </p>
+                    </>
+                  ) : <div className="skeleton" style={{ height: 48, width: 100, marginTop: 12 }} />}
+                </div>
+
+                <div className="hero-stat-card" style={{ "--hero-accent": batteryColor(last?.battery || 0) }}>
+                  <p className="hero-stat-label">Battery</p>
+                  {last ? (
+                    <>
+                      <div>
+                        <span className="hero-stat-value" style={{ color: batteryColor(last.battery) }}>
+                          {batteryDisplay}
+                        </span>
+                      </div>
+                      {last.battery > 0 && (
+                        <div className="battery-bar-wrap" style={{ marginTop: 10 }}>
+                          <div className="battery-bar-track">
+                            <div
+                              className="battery-bar-fill"
+                              style={{
+                                width: `${last.battery}%`,
+                                backgroundColor: batteryColor(last.battery),
+                              }}
+                            />
                           </div>
-                          <div className="thermo-bulb" style={{ backgroundColor: getTempColor(last.cpuTemp) }}>
-                            <span className="thermo-bulb-value">{last.cpuTemp}°</span>
-                          </div>
                         </div>
-                      </div>
-                      <span className="gauge-value" style={{ color: getTempColor(last.cpuTemp) }}>
-                        {last.cpuTemp}°C
-                      </span>
-                      <span className="gauge-label">{getTempLabel(last.cpuTemp)}</span>
-                    </div>
-
-                    {/* Speedometer */}
-                    <div className="gauge-item">
-                      <h3>Speed</h3>
-                      <div className="speedo-wrapper">
-                        <svg viewBox="0 0 200 130" className="speedo-svg">
-                          {/* Background arc */}
-                          <path
-                            d="M 20 120 A 80 80 0 0 1 180 120"
-                            fill="none"
-                            stroke="#e8e8e8"
-                            strokeWidth="14"
-                            strokeLinecap="round"
-                          />
-                          {/* Green zone 0-4 */}
-                          <path
-                            d="M 20 120 A 80 80 0 0 1 52.15 52.15"
-                            fill="none"
-                            stroke="#4caf50"
-                            strokeWidth="14"
-                            strokeLinecap="round"
-                          />
-                          {/* Orange zone 4-7 */}
-                          <path
-                            d="M 52.15 52.15 A 80 80 0 0 1 100 40"
-                            fill="none"
-                            stroke="#ff9800"
-                            strokeWidth="14"
-                          />
-                          <path
-                            d="M 100 40 A 80 80 0 0 1 131.76 47.61"
-                            fill="none"
-                            stroke="#ff9800"
-                            strokeWidth="14"
-                          />
-                          {/* Red zone 7-10 */}
-                          <path
-                            d="M 131.76 47.61 A 80 80 0 0 1 180 120"
-                            fill="none"
-                            stroke="#f44336"
-                            strokeWidth="14"
-                            strokeLinecap="round"
-                          />
-                          {/* Needle */}
-                          <line
-                            x1="100"
-                            y1="120"
-                            x2={100 + 68 * Math.cos(Math.PI + (Math.min(last.speed, 10) / 10) * Math.PI)}
-                            y2={120 + 68 * Math.sin(Math.PI + (Math.min(last.speed, 10) / 10) * Math.PI)}
-                            stroke="#c33"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                          />
-                          {/* Center dot */}
-                          <circle cx="100" cy="120" r="6" fill="#c33" />
-                          <circle cx="100" cy="120" r="3" fill="#fff" />
-                        </svg>
-                      </div>
-                      <span className="gauge-value">{last.speed} m/s</span>
-                    </div>
-
-                    {/* CPU Usage bar */}
-                    <div className="gauge-item">
-                      <h3>CPU Usage</h3>
-                      <div className="usage-bar-wrapper">
-                        <div className="usage-bar-track">
-                          <div
-                            className="usage-bar-fill"
-                            style={{
-                              height: `${last.cpuUsage}%`,
-                              backgroundColor:
-                                last.cpuUsage < 60 ? "#4caf50" : last.cpuUsage < 85 ? "#ff9800" : "#f44336",
-                            }}
-                          />
-                        </div>
-                        <div className="usage-bar-labels">
-                          <span>100%</span>
-                          <span>75%</span>
-                          <span>50%</span>
-                          <span>25%</span>
-                          <span>0%</span>
-                        </div>
-                      </div>
-                      <span className="gauge-value">{last.cpuUsage}%</span>
-                    </div>
-
-                    {/* RAM Usage bar */}
-                    <div className="gauge-item">
-                      <h3>RAM Usage</h3>
-                      <div className="usage-bar-wrapper">
-                        <div className="usage-bar-track">
-                          <div
-                            className="usage-bar-fill"
-                            style={{
-                              height: `${last.ramUsage}%`,
-                              backgroundColor:
-                                last.ramUsage < 60 ? "#2196f3" : last.ramUsage < 85 ? "#ff9800" : "#f44336",
-                            }}
-                          />
-                        </div>
-                        <div className="usage-bar-labels">
-                          <span>100%</span>
-                          <span>75%</span>
-                          <span>50%</span>
-                          <span>25%</span>
-                          <span>0%</span>
-                        </div>
-                      </div>
-                      <span className="gauge-value">{last.ramUsage}%</span>
-                    </div>
-                  </div>
-                ) : (
-                  <p>Loading...</p>
-                )}
+                      )}
+                    </>
+                  ) : <div className="skeleton" style={{ height: 48, width: 100, marginTop: 12 }} />}
+                </div>
               </div>
 
-              <div className="card wide-card">
-                <h3>Speed Over Time</h3>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={history}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="timeLabel" minTickGap={20} />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey="speed"
-                      stroke="#2196f3"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              {/* Charts Row */}
+              <div className="grid-row grid-row-2">
+                <div className="card">
+                  <p className="card-title">Speed Over Time</p>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={history}>
+                      <CartesianGrid {...CHART_DARK.grid} />
+                      <XAxis dataKey="timeLabel" minTickGap={20} tick={CHART_DARK.tick} axisLine={false} tickLine={false} />
+                      <YAxis tick={CHART_DARK.tick} axisLine={false} tickLine={false} />
+                      <Tooltip {...CHART_DARK.tooltip} />
+                      <Line isAnimationActive={false} type="monotone" dataKey="speed" stroke="#00d4ff" strokeWidth={2} dot={false} name="Speed (m/s)" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="card">
+                  <p className="card-title">CPU & RAM Usage</p>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={history}>
+                      <CartesianGrid {...CHART_DARK.grid} />
+                      <XAxis dataKey="timeLabel" minTickGap={20} tick={CHART_DARK.tick} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 100]} tick={CHART_DARK.tick} axisLine={false} tickLine={false} />
+                      <Tooltip {...CHART_DARK.tooltip} />
+                      <Legend wrapperStyle={{ fontSize: 11, color: "#475569" }} />
+                      <Line isAnimationActive={false} type="monotone" dataKey="cpuUsage" stroke="#39ff14" strokeWidth={2} dot={false} name="CPU %" />
+                      <Line isAnimationActive={false} type="monotone" dataKey="ramUsage" stroke="#a855f7" strokeWidth={2} dot={false} name="RAM %" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </>
           )}
 
-          {/* ===== Bins Tab ===== */}
+          {/* ===== BINS TAB ===== */}
           {activeTab === "bins" && (
             <>
-              <div className="card big-card">
-                <h3>Current Bin Status</h3>
-                {last ? (
-                  <div style={{ textAlign: "center", padding: "20px" }}>
-                    <div className="bin-wrapper" style={{ alignItems: "center" }}>
-                      <p>Organic:</p>
-                      <div className="bin-bar" style={{ height: "30px" }}>
-                        <div
-                          className="bin-fill"
-                          style={{
-                            width: `${last.binOrganic}%`,
-                            backgroundColor: "#4caf50",
-                          }}
-                        />
-                      </div>
-                      <p>{last.binOrganic}% Full</p>
-
-                      <p>Non-Organic:</p>
-                      <div className="bin-bar" style={{ height: "30px" }}>
-                        <div
-                          className="bin-fill"
-                          style={{
-                            width: `${last.binNonOrganic}%`,
-                            backgroundColor: "#ff9800",
-                          }}
-                        />
-                      </div>
-                      <p>{last.binNonOrganic}% Full</p>
-
-                      {(last.binOrganic > 90 || last.binNonOrganic > 90) && (
-                        <p style={{ color: "red", fontWeight: "bold" }}>
-                          Warning: Bin Almost Full!
-                        </p>
-                      )}
+              <div className="bins-grid">
+                <div className="bin-donut-card">
+                  <p className="card-title">Organic Bin</p>
+                  <DonutGauge value={last?.binOrganic || 0} color="#39ff14" />
+                  <div className="donut-label-group">
+                    <div className="donut-percent" style={{ color: "#39ff14" }}>
+                      {last?.binOrganic ?? "--"}%
                     </div>
+                    <div className="donut-name">Organic Waste</div>
                   </div>
-                ) : (
-                  <p>Loading...</p>
-                )}
+                </div>
+
+                <div className="bin-donut-card">
+                  <p className="card-title">Non-Organic Bin</p>
+                  <DonutGauge value={last?.binNonOrganic || 0} color="#ffaa00" />
+                  <div className="donut-label-group">
+                    <div className="donut-percent" style={{ color: "#ffaa00" }}>
+                      {last?.binNonOrganic ?? "--"}%
+                    </div>
+                    <div className="donut-name">Non-Organic Waste</div>
+                  </div>
+                </div>
               </div>
 
-              <div className="card small-card empty-bin-card">
-                <h3>Bin Actions</h3>
-                <p
-                  style={{
-                    fontSize: "14px",
-                    color: "#666",
-                    marginBottom: "16px",
-                  }}
-                >
-                  Command the robot to empty the bins
-                </p>
-                <button
-                  className="empty-bin-btn"
-                  onClick={handleEmptyBin}
-                  disabled={isBinEmpty}
-                  title="Command robot to empty the bins"
-                >
-                  {isBinEmpty ? "Emptying..." : "Empty Bins"}
-                </button>
+              <div className="bins-bottom">
+                {last && (last.binOrganic > 90 || last.binNonOrganic > 90) && (
+                  <div className="bin-warning">
+                    ⚠ Warning: One or more bins are almost full ({">"} 90%)
+                  </div>
+                )}
+                <div className="card bin-actions-card">
+                  <p className="card-title">Bin Actions</p>
+                  <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 16 }}>
+                    Command the robot to empty and reset the bins
+                  </p>
+                  <button
+                    className="empty-bin-btn"
+                    onClick={handleEmptyBin}
+                    disabled={isBinEmpty}
+                  >
+                    {isBinEmpty ? "⟳ Emptying..." : "⬡ Empty Bins"}
+                  </button>
+                </div>
               </div>
             </>
           )}
 
-          {/* ===== System Tab ===== */}
+          {/* ===== SYSTEM TAB ===== */}
           {activeTab === "system" && (
             <>
-              <div className="card wide-card">
-                <h3>CPU Temp / CPU Usage / RAM Usage Over Time</h3>
-                <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={history}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="timeLabel" minTickGap={20} />
-                    <YAxis domain={[0, 100]} />
-                    <Tooltip />
-                    <Line
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey="cpuTemp"
-                      stroke="#9c27b0"
-                      strokeWidth={2}
-                      dot={false}
-                      name="CPU Temp (°C)"
-                    />
-                    <Line
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey="cpuUsage"
-                      stroke="#4caf50"
-                      strokeWidth={2}
-                      dot={false}
-                      name="CPU Usage (%)"
-                    />
-                    <Line
-                      isAnimationActive={false}
-                      type="monotone"
-                      dataKey="ramUsage"
-                      stroke="#2196f3"
-                      strokeWidth={2}
-                      dot={false}
-                      name="RAM Usage (%)"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="grid-row grid-row-4">
+                <div className="metric-card">
+                  <p className="metric-label">CPU Temp</p>
+                  <ArcGauge value={last?.cpuTemp || 0} max={100} color={tempColor(last?.cpuTemp || 0)} />
+                  <div className="metric-value" style={{ color: tempColor(last?.cpuTemp || 0) }}>
+                    {last?.cpuTemp ?? "--"}
+                    <span className="metric-unit">°C</span>
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <p className="metric-label">CPU Usage</p>
+                  <ArcGauge value={last?.cpuUsage || 0} max={100} color={usageColor(last?.cpuUsage || 0)} />
+                  <div className="metric-value" style={{ color: usageColor(last?.cpuUsage || 0) }}>
+                    {last?.cpuUsage ?? "--"}
+                    <span className="metric-unit">%</span>
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <p className="metric-label">RAM Usage</p>
+                  <ArcGauge value={last?.ramUsage || 0} max={100} color="#a855f7" />
+                  <div className="metric-value" style={{ color: "#a855f7" }}>
+                    {last?.ramUsage ?? "--"}
+                    <span className="metric-unit">%</span>
+                  </div>
+                </div>
+
+                <div className="metric-card">
+                  <p className="metric-label">Fan Speed</p>
+                  <ArcGauge value={Math.min(last?.fanSpeed || 0, 5000)} max={5000} color="#00d4ff" />
+                  <div className="metric-value" style={{ color: "#00d4ff" }}>
+                    {last?.fanSpeed ?? "--"}
+                    <span className="metric-unit" style={{ fontSize: 11 }}> RPM</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="card small-card">
-                <h3>CPU & System</h3>
-                {last ? (
-                  <ul className="metrics-list">
-                    <li>
-                      <span>CPU Temp</span>
-                      <strong>{last.cpuTemp}°C</strong>
-                    </li>
-                    <li>
-                      <span>CPU Usage</span>
-                      <strong>{last.cpuUsage}%</strong>
-                    </li>
-                    <li>
-                      <span>RAM Usage</span>
-                      <strong>{last.ramUsage}%</strong>
-                    </li>
-                    <li>
-                      <span>Fan Speed</span>
-                      <strong>{last.fanSpeed} RPM</strong>
-                    </li>
-                  </ul>
-                ) : (
-                  <p>Loading...</p>
-                )}
-              </div>
-
-              <div className="card small-card">
-                <h3>Battery Level</h3>
-                {last ? (
-                  <div style={{ padding: "16px", textAlign: "center" }}>
-                    <div
-                      className="bin-bar"
-                      style={{
-                        width: "100%",
-                        height: "30px",
-                        backgroundColor: "#ddd",
-                        borderRadius: "6px",
-                        overflow: "hidden",
-                      }}
-                    >
+              {/* Battery Row */}
+              <div className="card">
+                <p className="card-title">Battery Level</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+                  <span style={{ fontSize: 36, fontWeight: 700, color: batteryColor(last?.battery || 0), minWidth: 80 }}>
+                    {batteryDisplay}
+                  </span>
+                  <div style={{ flex: 1 }}>
+                    <div className="battery-bar-track" style={{ height: 14 }}>
                       <div
-                        className="bin-fill"
+                        className="battery-bar-fill"
                         style={{
-                          width: `${last.battery}%`,
-                          height: "100%",
-                          backgroundColor:
-                            last.battery > 50
-                              ? "#4caf50"
-                              : last.battery > 20
-                              ? "#ff9800"
-                              : "#f44336",
-                          transition: "width 0.3s ease",
+                          width: last?.battery > 0 ? `${last.battery}%` : "0%",
+                          backgroundColor: batteryColor(last?.battery || 0),
                         }}
                       />
                     </div>
-                    <p style={{ marginTop: "8px", fontWeight: "600" }}>
-                      {last.battery}%
-                    </p>
+                    <div className="battery-label">
+                      <span>0%</span>
+                      <span>50%</span>
+                      <span>100%</span>
+                    </div>
                   </div>
-                ) : (
-                  <p>Loading...</p>
-                )}
+                </div>
+              </div>
+
+              {/* System History Chart */}
+              <div className="card">
+                <p className="card-title">System History</p>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={history}>
+                    <CartesianGrid {...CHART_DARK.grid} />
+                    <XAxis dataKey="timeLabel" minTickGap={20} tick={CHART_DARK.tick} axisLine={false} tickLine={false} />
+                    <YAxis domain={[0, 100]} tick={CHART_DARK.tick} axisLine={false} tickLine={false} />
+                    <Tooltip {...CHART_DARK.tooltip} />
+                    <Legend wrapperStyle={{ fontSize: 11, color: "#475569" }} />
+                    <Line isAnimationActive={false} type="monotone" dataKey="cpuTemp" stroke="#ff006e" strokeWidth={2} dot={false} name="CPU Temp °C" />
+                    <Line isAnimationActive={false} type="monotone" dataKey="cpuUsage" stroke="#39ff14" strokeWidth={2} dot={false} name="CPU %" />
+                    <Line isAnimationActive={false} type="monotone" dataKey="ramUsage" stroke="#a855f7" strokeWidth={2} dot={false} name="RAM %" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </>
           )}
 
-          {/* ===== Tracking Tab (noVNC / RViz2) ===== */}
+          {/* ===== CONTROL TAB ===== */}
+          {activeTab === "control" && <ManualControl />}
+
+          {/* ===== TRACKING TAB ===== */}
           {activeTab === "tracking" && (
-            <div className="card wide-card tracking-card">
-              <h3>Tracking - RViz2 (via noVNC)</h3>
+            <div className="card tracking-card">
+              <p className="card-title">◉ RViz2 — Live Tracking (via noVNC)</p>
               <div className="novnc-wrapper">
                 <iframe
-                  src="http://localhost:6080/vnc.html?autoconnect=true&resize=scale"
+                  src={NOVNC_URL}
                   title="RViz2 via noVNC"
                   className="novnc-iframe"
                   allowFullScreen
                 />
               </div>
               <p className="novnc-hint">
-                Streaming RViz2 from the laptop via noVNC. Make sure noVNC is
-                running on port 6080.
+                Streaming RViz2 from the laptop via noVNC. Set{" "}
+                <code>VITE_NOVNC_URL</code> in <code>.env.local</code> to change the address.
               </p>
             </div>
           )}
+
         </div>
       </main>
     </div>

@@ -24,7 +24,6 @@ export default function Manage() {
         setRosConnected(false);
       }
     }
-    
 
     fetchStatus();
     const id = setInterval(fetchStatus, 5000);
@@ -32,8 +31,7 @@ export default function Manage() {
   }, []);
 
   function handleShutdown() {
-    if (!window.confirm("Are you sure you want to shut down the robot?"))
-      return;
+    if (!window.confirm("Shut down the robot? This will stop all operations.")) return;
     setShuttingDown(true);
     robotApi
       .shutdown()
@@ -42,117 +40,110 @@ export default function Manage() {
       .finally(() => setShuttingDown(false));
   }
 
-  function handleEmptyBins() {
+  async function handleEmptyBins() {
     setEmptyingBins(true);
-    robotApi
-      .emptyBins()
-      .then(() => toast.success("Empty bins command sent"))
-      .catch((err) => toast.error("Failed: " + err.message))
-      .finally(() => setEmptyingBins(false));
+    try {
+      await robotApi.emptyBins();
+      toast.success("Bins emptied successfully!");
+    } catch (err) {
+      toast.error("Failed: " + err.message);
+    } finally {
+      setEmptyingBins(false);
+    }
   }
+
+  const userInitial = user?.name ? user.name[0].toUpperCase() : "?";
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="sidebar-logo">GG</div>
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon">GG</div>
+          <div>
+            <div className="sidebar-logo-text">Green Guardian</div>
+            <div className="sidebar-logo-sub">Robot Dashboard</div>
+          </div>
+        </div>
+
         <nav className="sidebar-nav">
           <button className="nav-item" onClick={() => navigate("/")}>
+            <span className="nav-icon">◈</span>
             Dashboard
           </button>
-          <button className="nav-item active">Manage</button>
+          <button className="nav-item active">
+            <span className="nav-icon">⚙</span>
+            Manage
+          </button>
         </nav>
+
         <div className="sidebar-bottom">
-          <span className="sidebar-user">{user?.name}</span>
+          <div className="sidebar-user">
+            <div className="user-avatar">{userInitial}</div>
+            <span className="user-name">{user?.name}</span>
+          </div>
           <button className="logout-btn-sidebar" onClick={logout}>
-            Logout
+            ↩ Logout
           </button>
         </div>
       </aside>
 
-    <div className="manage-content">
-      <h1>Manage Robots</h1>
+      <div className="manage-content">
+        <h1>⚙ Manage</h1>
 
-      <div className="manage-grid">
-        <div className="manage-card">
-          <h3>Robot Status</h3>
-          <div className="robot-status">
-            <span
-              className={`status-dot ${rosConnected ? "online" : "offline"}`}
-            />
-            <span>{rosConnected ? "Online (Live)" : "Offline"}</span>
+        <div className="manage-grid">
+          <div className="manage-card">
+            <h3>Robot Status</h3>
+            <div className="robot-status">
+              <span className={`status-dot ${rosConnected ? "online" : "offline"}`} />
+              <span>{rosConnected ? "Online — Live Data" : "Offline"}</span>
+            </div>
+
+            {last && (
+              <ul className="robot-info-list">
+                <li><span>Speed</span><strong>{Number((last.speed || 0).toFixed(2))} m/s</strong></li>
+                <li><span>CPU Temp</span><strong>{Math.round(last.cpuTemp || 0)} °C</strong></li>
+                <li><span>CPU Usage</span><strong>{Math.round(last.cpuUsage || 0)}%</strong></li>
+                <li><span>RAM Usage</span><strong>{Math.round(last.ramUsage || 0)}%</strong></li>
+                <li><span>Battery</span><strong>{last.battery > 0 ? `${Math.round(last.battery)}%` : "--"}</strong></li>
+                <li><span>Organic Bin</span><strong>{Math.round(last.binOrganic || 0)}%</strong></li>
+                <li><span>Non-Organic Bin</span><strong>{Math.round(last.binNonOrganic || 0)}%</strong></li>
+              </ul>
+            )}
           </div>
 
-          {last && (
-            <ul className="robot-info-list">
-              <li>
-                <span>Speed</span>
-                <strong>{Number((last.speed || 0).toFixed(2))} m/s</strong>
-              </li>
-              <li>
-                <span>CPU Temp</span>
-                <strong>{Math.round(last.cpuTemp || 0)} °C</strong>
-              </li>
-              <li>
-                <span>CPU Usage</span>
-                <strong>{Math.round(last.cpuUsage || 0)}%</strong>
-              </li>
-              <li>
-                <span>RAM Usage</span>
-                <strong>{Math.round(last.ramUsage || 0)}%</strong>
-              </li>
-              <li>
-                <span>Battery</span>
-                <strong>{Math.round(last.battery || 0)}%</strong>
-              </li>
-              <li>
-                <span>Organic Bin</span>
-                <strong>{Math.round(last.binOrganic || 0)}%</strong>
-              </li>
-              <li>
-                <span>Non-Organic Bin</span>
-                <strong>{Math.round(last.binNonOrganic || 0)}%</strong>
-              </li>
-            </ul>
-          )}
-        </div>
-
-        <div className="manage-card">
-          <h3>Robot Controls</h3>
-          <div className="manage-actions">
-            <button
-              className="manage-btn secondary"
-              onClick={handleEmptyBins}
-              disabled={emptyingBins}
-            >
-              {emptyingBins ? "Emptying..." : "Empty Bins"}
-            </button>
-            <button
-              className="manage-btn danger"
-              onClick={handleShutdown}
-              disabled={shuttingDown}
-            >
-              {shuttingDown ? "Shutting down..." : "Shutdown Robot"}
-            </button>
+          <div className="manage-card">
+            <h3>Robot Controls</h3>
+            <div className="manage-actions">
+              <button
+                className="manage-btn secondary"
+                onClick={handleEmptyBins}
+                disabled={emptyingBins}
+              >
+                {emptyingBins ? "⟳ Emptying..." : "⬡ Empty Bins"}
+              </button>
+              <button
+                className="manage-btn danger"
+                onClick={handleShutdown}
+                disabled={shuttingDown}
+              >
+                {shuttingDown ? "Shutting down..." : "⏻ Shutdown Robot"}
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className="manage-card">
-          <h3>Account</h3>
-          <div className="user-info-card">
-            <p>
-              <strong>{user?.name}</strong>
-            </p>
-            <p>{user?.email}</p>
-            <p>
-              Role: <strong>{user?.role}</strong>
-            </p>
-            <button className="logout-btn" onClick={logout}>
-              Log Out
-            </button>
+          <div className="manage-card">
+            <h3>Account</h3>
+            <div className="user-info-card">
+              <p><strong>{user?.name}</strong></p>
+              <p>{user?.email}</p>
+              <p>Role: <strong>{user?.role}</strong></p>
+              <button className="logout-btn" onClick={logout}>
+                ↩ Log Out
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }

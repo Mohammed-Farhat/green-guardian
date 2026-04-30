@@ -48,4 +48,10 @@ export const telemetryApi = {
 export const robotApi = {
   emptyBins: () => request("/robot/empty-bins", { method: "POST" }),
   shutdown: () => request("/robot/shutdown", { method: "POST" }),
+  teleop: (linear, angular) =>
+    request("/robot/teleop", {
+      method: "POST",
+      body: JSON.stringify({ linear, angular }),
+    }),
+  stop: () => request("/robot/stop", { method: "POST" }),
 };

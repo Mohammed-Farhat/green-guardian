@@ -1,4 +1,12 @@
 require("dotenv").config();
+
+const REQUIRED_ENV = ["JWT_SECRET", "MONGODB_URI"];
+const missing = REQUIRED_ENV.filter((k) => !process.env[k]);
+if (missing.length) {
+  console.error("Missing required environment variables:", missing.join(", "));
+  process.exit(1);
+}
+
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
@@ -11,24 +19,21 @@ const { auth } = require("./middleware/auth");
 
 const app = express();
 
-// Middleware
 app.use(
   cors({
     origin: process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",")
+      ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
       : "*",
   })
 );
 app.use(express.json());
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/telemetry", telemetryRoutes);
 app.use("/api/robot", auth, robotRoutes);
 
-// Health check
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", rosConnected: rosBridgeService.connected });
 });
 
 const PORT = process.env.PORT || 5000;
@@ -36,7 +41,13 @@ const PORT = process.env.PORT || 5000;
 const start = async () => {
   try {
     await connectDB();
-    rosBridgeService.connect();
+
+    try {
+      rosBridgeService.connect();
+    } catch (err) {
+      console.error("ROSBridge initial connect failed (will retry):", err.message);
+    }
+
     novncService.start();
 
     app.listen(PORT, () => {

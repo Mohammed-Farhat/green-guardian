@@ -17,6 +17,9 @@ class RosBridgeService {
     };
     this.saveInterval = null;
     this.connected = false;
+    this.reconnectDelay = 5000;
+    this.maxReconnectDelay = 60000;
+    this._cmdVelTopic = null;
   }
 
   connect() {
@@ -27,6 +30,7 @@ class RosBridgeService {
     this.ros.on("connection", () => {
       console.log(`Connected to ROSBridge at ${url}`);
       this.connected = true;
+      this.reconnectDelay = 5000;
       this._subscribeToTopics();
     });
 
@@ -35,49 +39,49 @@ class RosBridgeService {
     });
 
     this.ros.on("close", () => {
-      console.log("ROSBridge connection closed. Reconnecting in 5s...");
       this.connected = false;
       this.subscribers = [];
-      setTimeout(() => this.connect(), 5000);
+      this._cmdVelTopic = null;
+      const delay = this.reconnectDelay;
+      this.reconnectDelay = Math.min(this.reconnectDelay * 2, this.maxReconnectDelay);
+      console.log(`ROSBridge connection closed. Reconnecting in ${delay / 1000}s...`);
+      setTimeout(() => this.connect(), delay);
     });
 
     this._startSaveInterval();
   }
 
   _subscribeToTopics() {
-    // Speed from /odom (nav_msgs/Odometry)
     this._subscribe("/odom", "nav_msgs/Odometry", (msg) => {
       const vx = msg.twist.twist.linear.x;
       const vy = msg.twist.twist.linear.y;
       this.latestData.speed = Math.sqrt(vx * vx + vy * vy);
     });
 
-    // CPU Temperature (std_msgs/Float32)
     this._subscribe("/system/cpu_temp", "std_msgs/Float32", (msg) => {
       this.latestData.cpuTemp = msg.data;
     });
 
-    // CPU Usage (std_msgs/Float32)
     this._subscribe("/system/cpu_usage", "std_msgs/Float32", (msg) => {
       this.latestData.cpuUsage = msg.data;
     });
 
-    // RAM Usage (std_msgs/Float32)
     this._subscribe("/system/ram_usage", "std_msgs/Float32", (msg) => {
       this.latestData.ramUsage = msg.data;
     });
 
-    // Fan Speed (std_msgs/Float32)
     this._subscribe("/system/fan_speed", "std_msgs/Float32", (msg) => {
       this.latestData.fanSpeed = msg.data;
     });
 
-    // Organic Bin Level (std_msgs/Float32)
+    this._subscribe("/system/battery", "std_msgs/Float32", (msg) => {
+      this.latestData.battery = msg.data;
+    });
+
     this._subscribe("/bins/organic_level", "std_msgs/Float32", (msg) => {
       this.latestData.binOrganic = msg.data;
     });
 
-    // Non-Organic Bin Level (std_msgs/Float32)
     this._subscribe("/bins/non_organic_level", "std_msgs/Float32", (msg) => {
       this.latestData.binNonOrganic = msg.data;
     });
@@ -98,12 +102,29 @@ class RosBridgeService {
     this.subscribers.push(listener);
   }
 
-  // Call /bins/reset service
+  publishCmdVel(linear, angular) {
+    if (!this.ros || !this.connected) {
+      throw new Error("Not connected to ROSBridge");
+    }
+    if (!this._cmdVelTopic) {
+      this._cmdVelTopic = new ROSLIB.Topic({
+        ros: this.ros,
+        name: "/cmd_vel",
+        messageType: "geometry_msgs/Twist",
+      });
+    }
+    this._cmdVelTopic.publish(
+      new ROSLIB.Message({
+        linear: { x: linear, y: 0, z: 0 },
+        angular: { x: 0, y: 0, z: angular },
+      })
+    );
+  }
+
   callEmptyBins() {
     return this._callService("/bins/reset", "std_srvs/Trigger");
   }
 
-  // Call /robot/shutdown service
   callShutdown() {
     return this._callService("/robot/shutdown", "std_srvs/Trigger");
   }
@@ -123,12 +144,13 @@ class RosBridgeService {
       service.callService(
         new ROSLIB.ServiceRequest({}),
         resolve,
-        (err) => reject(new Error(typeof err === "string" ? err : "Service call failed"))
+        (err) => reject(new Error(typeof err === "string" ? err : JSON.stringify(err) || "Service call failed"))
       );
     });
   }
 
   _startSaveInterval() {
+    if (this.saveInterval) return;
     const interval = parseInt(process.env.SAVE_INTERVAL_MS) || 10000;
 
     this.saveInterval = setInterval(async () => {
@@ -155,6 +177,7 @@ class RosBridgeService {
 
   disconnect() {
     if (this.saveInterval) clearInterval(this.saveInterval);
+    this.saveInterval = null;
     this.subscribers.forEach((listener) => listener.unsubscribe());
     this.subscribers = [];
     if (this.ros) this.ros.close();
