@@ -647,41 +647,6 @@
 }
 
 /* ============================================================
-   BATTERY BAR
-   ============================================================ */
-.battery-bar-wrap {
-  width: 100%;
-}
-
-.battery-bar-track {
-  height: 10px;
-  background: rgba(255, 255, 255, 0.07);
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.battery-bar-fill {
-  height: 100%;
-  border-radius: 5px;
-  transition: width 0.5s ease, background-color 0.5s ease;
-}
-
-.battery-label {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.battery-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  text-align: right;
-}
-
-/* ============================================================
    TRACKING TAB
    ============================================================ */
 .tracking-card {

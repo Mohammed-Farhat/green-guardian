@@ -26,6 +26,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 
 from geometry_msgs.msg import Twist, TransformStamped
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import JointState
 from tf2_ros import TransformBroadcaster
 
 import serial
@@ -70,6 +71,8 @@ class MotorBridge(Node):
         self.x      = 0.0
         self.y      = 0.0
         self.theta  = 0.0
+        self.left_wheel_angle  = 0.0
+        self.right_wheel_angle = 0.0
         self.odom_lock       = threading.Lock()
         self._last_odom_time = None   # wall-clock time of last encoder message
         self._motors_stopped = False  # True once watchdog stops; reset by cmd_vel
@@ -85,6 +88,9 @@ class MotorBridge(Node):
         # ── Publishers ───────────────────────────────────────────
         self.odom_pub = self.create_publisher(
             Odometry, '/odom', sensor_qos)
+
+        self.joint_state_pub = self.create_publisher(
+            JointState, '/joint_states', 10)
 
         self.tf_broadcaster = TransformBroadcaster(self)
 
@@ -235,6 +241,10 @@ class MotorBridge(Node):
         d_left  = left_ticks  * self.m_per_tick
         d_right = right_ticks * self.m_per_tick
 
+        # Accumulate wheel rotation angles (rad) for /joint_states
+        self.left_wheel_angle  += d_left  / self.wheel_radius
+        self.right_wheel_angle += d_right / self.wheel_radius
+
         # Differential drive pose update:
         #   d_center = average distance traveled
         #   d_theta  = rotation from wheel speed difference
@@ -287,6 +297,15 @@ class MotorBridge(Node):
         odom.twist.covariance[35] = 0.05  # angular.z variance
 
         self.odom_pub.publish(odom)
+
+        # ── Publish /joint_states (wheel angles for robot_state_publisher) ──
+        js = JointState()
+        js.header.stamp = now
+        js.name     = ['wheel_front_left_joint', 'wheel_front_right_joint',
+                        'wheel_rear_left_joint',  'wheel_rear_right_joint']
+        js.position = [self.left_wheel_angle,  self.right_wheel_angle,
+                       self.left_wheel_angle,  self.right_wheel_angle]
+        self.joint_state_pub.publish(js)
 
         # ── Broadcast TF: odom → base_footprint ─────────────────
         tf                          = TransformStamped()

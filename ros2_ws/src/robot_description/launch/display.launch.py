@@ -48,16 +48,17 @@ def generate_launch_description():
         ),
 
         # 2. Joint State Publisher GUI
-        #    Publishes /joint_states for the 4 continuous wheel joints.
-        #    Without this, robot_state_publisher cannot compute wheel TF frames
-        #    and RViz2 will warn about missing transforms.
-        #    The GUI gives you sliders to spin the wheels manually.
-        Node(
-            package='joint_state_publisher_gui',
-            executable='joint_state_publisher_gui',
-            name='joint_state_publisher_gui',
-            output='screen',
-        ),
+        #    Only for no-hardware URDF preview — gives sliders to spin wheels.
+        #    When motor_bridge is running it owns /joint_states from real encoder
+        #    data; launching this GUI alongside it causes conflicts.
+        #    Uncomment only when previewing the URDF without hardware.
+        #
+        # Node(
+        #     package='joint_state_publisher_gui',
+        #     executable='joint_state_publisher_gui',
+        #     name='joint_state_publisher_gui',
+        #     output='screen',
+        # ),
 
         # 3. RViz2
         #    Opens with default config — you will need to:

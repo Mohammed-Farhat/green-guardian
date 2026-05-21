@@ -13,7 +13,7 @@ class RosBridgeService {
       fanSpeed: 0,
       binOrganic: 0,
       binNonOrganic: 0,
-      battery: 0,
+      throttled: -1,
     };
     this.saveInterval = null;
     this.connected = false;
@@ -74,8 +74,8 @@ class RosBridgeService {
       this.latestData.fanSpeed = msg.data;
     });
 
-    this._subscribe("/system/battery", "std_msgs/Float32", (msg) => {
-      this.latestData.battery = msg.data;
+    this._subscribe("/system/throttled", "std_msgs/Int32", (msg) => {
+      this.latestData.throttled = msg.data;
     });
 
     this._subscribe("/bins/organic_level", "std_msgs/Float32", (msg) => {

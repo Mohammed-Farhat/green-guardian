@@ -47,10 +47,18 @@ function usageColor(u) {
   return "#ff006e";
 }
 
-function batteryColor(b) {
-  if (b > 50) return "#39ff14";
-  if (b > 20) return "#ffaa00";
-  return "#ff006e";
+function throttleInfo(val) {
+  if (val === undefined || val === null || val < 0)
+    return { label: "Unknown", sub: "Cannot read power state", color: "#475569", symbol: "?" };
+  if (val & 0x1)
+    return { label: "Under-voltage!", sub: "Check your power supply", color: "#ff006e", symbol: "✕" };
+  if (val & 0x4)
+    return { label: "Throttled!", sub: "CPU frequency reduced", color: "#ff006e", symbol: "✕" };
+  if (val & 0x10000)
+    return { label: "UV Occurred", sub: "Under-voltage since boot", color: "#ffaa00", symbol: "⚠" };
+  if (val & 0x40000)
+    return { label: "Throttle Occurred", sub: "Throttling since boot", color: "#ffaa00", symbol: "⚠" };
+  return { label: "Power OK", sub: "Supply is stable", color: "#39ff14", symbol: "✓" };
 }
 
 // SVG arc gauge helper — draws a half-circle arc gauge
@@ -112,21 +120,8 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
   const [isBinEmpty, setIsBinEmpty] = useState(false);
-  const [batteryAlerted, setBatteryAlerted] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [shuttingDown, setShuttingDown] = useState(false);
-
-  // Battery alert
-  useEffect(() => {
-    if (!last) return;
-    if (last.battery > 0 && last.battery <= 20 && !batteryAlerted) {
-      toast.error("Battery critical (≤20%) — Robot needs charging!");
-      setBatteryAlerted(true);
-    }
-    if (last.battery > 25 && batteryAlerted) {
-      setBatteryAlerted(false);
-    }
-  }, [last, batteryAlerted]);
 
   // Fetch history on mount
   useEffect(() => {
@@ -174,7 +169,7 @@ export default function Dashboard() {
       fanSpeed: Math.round(t.fanSpeed || 0),
       binOrganic: Math.round(t.binOrganic || 0),
       binNonOrganic: Math.round(t.binNonOrganic || 0),
-      battery: Math.round(t.battery || 0),
+      throttled: t.throttled ?? -1,
       timestamp: t.timestamp ? new Date(t.timestamp).getTime() : Date.now(),
       timeLabel: t.timestamp
         ? new Date(t.timestamp).toLocaleTimeString()
@@ -211,7 +206,6 @@ export default function Dashboard() {
       .finally(() => setShuttingDown(false));
   }
 
-  const batteryDisplay = last?.battery > 0 ? `${last.battery}%` : "--";
   const userInitial = user?.name ? user.name[0].toUpperCase() : "?";
 
   const NAV = [
@@ -331,31 +325,25 @@ export default function Dashboard() {
                   ) : <div className="skeleton" style={{ height: 48, width: 100, marginTop: 12 }} />}
                 </div>
 
-                <div className="hero-stat-card" style={{ "--hero-accent": batteryColor(last?.battery || 0) }}>
-                  <p className="hero-stat-label">Battery</p>
-                  {last ? (
-                    <>
-                      <div>
-                        <span className="hero-stat-value" style={{ color: batteryColor(last.battery) }}>
-                          {batteryDisplay}
-                        </span>
-                      </div>
-                      {last.battery > 0 && (
-                        <div className="battery-bar-wrap" style={{ marginTop: 10 }}>
-                          <div className="battery-bar-track">
-                            <div
-                              className="battery-bar-fill"
-                              style={{
-                                width: `${last.battery}%`,
-                                backgroundColor: batteryColor(last.battery),
-                              }}
-                            />
+                {(() => {
+                  const info = throttleInfo(last?.throttled);
+                  return (
+                    <div className="hero-stat-card" style={{ "--hero-accent": info.color }}>
+                      <p className="hero-stat-label">Power Status</p>
+                      {last ? (
+                        <>
+                          <div>
+                            <span className="hero-stat-value" style={{ color: info.color }}>
+                              {info.symbol}
+                            </span>
                           </div>
-                        </div>
-                      )}
-                    </>
-                  ) : <div className="skeleton" style={{ height: 48, width: 100, marginTop: 12 }} />}
-                </div>
+                          <p className="hero-stat-sub" style={{ color: info.color }}>{info.label}</p>
+                          <p style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{info.sub}</p>
+                        </>
+                      ) : <div className="skeleton" style={{ height: 48, width: 100, marginTop: 12 }} />}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Charts Row */}
@@ -482,31 +470,29 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Battery Row */}
-              <div className="card">
-                <p className="card-title">Battery Level</p>
-                <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-                  <span style={{ fontSize: 36, fontWeight: 700, color: batteryColor(last?.battery || 0), minWidth: 80 }}>
-                    {batteryDisplay}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div className="battery-bar-track" style={{ height: 14 }}>
-                      <div
-                        className="battery-bar-fill"
-                        style={{
-                          width: last?.battery > 0 ? `${last.battery}%` : "0%",
-                          backgroundColor: batteryColor(last?.battery || 0),
-                        }}
-                      />
-                    </div>
-                    <div className="battery-label">
-                      <span>0%</span>
-                      <span>50%</span>
-                      <span>100%</span>
+              {/* Power Status Row */}
+              {(() => {
+                const info = throttleInfo(last?.throttled);
+                return (
+                  <div className="card">
+                    <p className="card-title">Power Status</p>
+                    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                      <span style={{ fontSize: 42, fontWeight: 700, color: info.color, lineHeight: 1 }}>
+                        {info.symbol}
+                      </span>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: info.color }}>{info.label}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>{info.sub}</div>
+                        {last?.throttled >= 0 && (
+                          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, fontFamily: "monospace" }}>
+                            throttled=0x{(last.throttled).toString(16).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* System History Chart */}
               <div className="card">

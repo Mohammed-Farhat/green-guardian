@@ -104,7 +104,7 @@ export default function Manage() {
                 <li><span>CPU Temp</span><strong>{Math.round(last.cpuTemp || 0)} °C</strong></li>
                 <li><span>CPU Usage</span><strong>{Math.round(last.cpuUsage || 0)}%</strong></li>
                 <li><span>RAM Usage</span><strong>{Math.round(last.ramUsage || 0)}%</strong></li>
-                <li><span>Battery</span><strong>{last.battery > 0 ? `${Math.round(last.battery)}%` : "--"}</strong></li>
+                <li><span>Power</span><strong>{last.throttled === 0 ? "OK" : last.throttled > 0 ? `0x${last.throttled.toString(16).toUpperCase()}` : "--"}</strong></li>
                 <li><span>Organic Bin</span><strong>{Math.round(last.binOrganic || 0)}%</strong></li>
                 <li><span>Non-Organic Bin</span><strong>{Math.round(last.binNonOrganic || 0)}%</strong></li>
               </ul>

@@ -22,9 +22,9 @@ const robotTelemetrySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    battery: {
+    throttled: {
       type: Number,
-      default: 0,
+      default: -1,
     },
     binOrganic: {
       type: Number,
