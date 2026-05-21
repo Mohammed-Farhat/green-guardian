@@ -19,6 +19,8 @@ export default function ManualControl() {
   const [activeDir, setActiveDir] = useState(null);
   const [emergencyStopped, setEmergencyStopped] = useState(false);
   const [emergencyCountdown, setEmergencyCountdown] = useState(0);
+  const [sentLin, setSentLin] = useState(0);
+  const [sentAng, setSentAng] = useState(0);
 
   // Refs so keyboard listener always reads latest values without re-registering
   const isManualRef = useRef(isManual);
@@ -35,6 +37,8 @@ export default function ManualControl() {
   useEffect(() => { activeDirRef.current = activeDir; }, [activeDir]);
 
   function sendVelocity(lin, ang) {
+    setSentLin(lin);
+    setSentAng(ang);
     robotApi.teleop(lin, ang).catch((err) => {
       console.error("Teleop failed:", err.message);
     });
@@ -56,6 +60,8 @@ export default function ManualControl() {
     clearInterval(intervalRef.current);
     intervalRef.current = null;
     setActiveDir(null);
+    setSentLin(0);
+    setSentAng(0);
     if (sendStop) {
       robotApi.stop().catch(() => {});
     }
@@ -231,11 +237,11 @@ export default function ManualControl() {
           )}
           <div className="status-row">
             <span className="status-label">Linear Speed</span>
-            <span className="status-val">{linearSpeed.toFixed(1)} m/s</span>
+            <span className="status-val">{sentLin.toFixed(2)} m/s</span>
           </div>
           <div className="status-row">
             <span className="status-label">Angular Speed</span>
-            <span className="status-val">{angularSpeed.toFixed(1)} rad/s</span>
+            <span className="status-val">{sentAng.toFixed(2)} rad/s</span>
           </div>
           <div className="status-row">
             <span className="status-label">Direction</span>
