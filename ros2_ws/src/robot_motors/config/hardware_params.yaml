@@ -4,7 +4,7 @@ motor_bridge:
     # ── Serial port ──────────────────────────────────────────────
     # Find your port with: ls /dev/tty* before and after plugging Arduino
     # Pi5 common values: /dev/ttyUSB0  or  /dev/ttyACM0
-    serial_port: /dev/ttyUSB0
+    serial_port: /dev/ttyACM0
     baud_rate: 115200
 
     # ── Wheel geometry (measured) ────────────────────────────────
