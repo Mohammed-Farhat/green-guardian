@@ -3,7 +3,6 @@ dashboard.launch.py
 Launches all nodes needed to stream data to the web dashboard:
   - system_monitor_node  : CPU temp, usage, RAM, fan speed
   - bin_levels_node      : organic / non-organic bin levels
-  - odom_placeholder_node: placeholder /odom (remove once motor_bridge is live)
   - rosbridge_websocket  : WebSocket bridge on port 9090 for the frontend
 """
 
@@ -41,16 +40,8 @@ def generate_launch_description():
         output='screen',
     )
 
-    odom_placeholder = Node(
-        package='robot_dashboard',
-        executable='odom_node',
-        name='odom_placeholder_node',
-        output='screen',
-    )
-
     return LaunchDescription([
         system_monitor,
         bin_levels,
-        odom_placeholder,
         rosbridge_launch,
     ])

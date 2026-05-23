@@ -39,7 +39,7 @@ def generate_launch_description():
     # Allow serial port override from command line
     serial_port_arg = DeclareLaunchArgument(
         'serial_port',
-        default_value='/dev/ttyUSB0',
+        default_value='/dev/ttyACM0',
         description='Serial port for Arduino #1'
     )
 

@@ -51,14 +51,12 @@ def generate_launch_description():
         #    Only for no-hardware URDF preview — gives sliders to spin wheels.
         #    When motor_bridge is running it owns /joint_states from real encoder
         #    data; launching this GUI alongside it causes conflicts.
-        #    Uncomment only when previewing the URDF without hardware.
-        #
-        # Node(
-        #     package='joint_state_publisher_gui',
-        #     executable='joint_state_publisher_gui',
-        #     name='joint_state_publisher_gui',
-        #     output='screen',
-        # ),
+        Node(
+            package='joint_state_publisher_gui',
+            executable='joint_state_publisher_gui',
+            name='joint_state_publisher_gui',
+            output='screen',
+        ),
 
         # 3. RViz2
         #    Opens with default config — you will need to:
