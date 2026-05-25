@@ -21,7 +21,7 @@ motor_bridge:
     # ⚠️ NEEDS TUNING: measure actual max speed on ground with battery
     # If robot overshoots targets → decrease this value
     # If robot undershoots targets → increase this value
-    max_velocity: 0.5           # m/s — estimated, tune after ground testing
+    max_velocity: 0.543         # m/s — estimated, tune after ground testing
 
     # ── Safety ───────────────────────────────────────────────────
     max_pwm: 249                # 98% of 255 — DBH-1B hardware limit

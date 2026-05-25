@@ -54,7 +54,8 @@ def generate_launch_description():
         output='screen',
         parameters=[
             params_file,
-            {'serial_port': LaunchConfiguration('serial_port')}
+            {'serial_port': LaunchConfiguration('serial_port')},
+            {'publish_tf': False},
         ],
     )
 

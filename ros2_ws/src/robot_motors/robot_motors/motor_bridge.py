@@ -19,7 +19,6 @@
 #   Send:    M:LEFT,RIGHT\n  (PWM -249 to 249)
 #   Receive: O:LEFT,RIGHT\n  (encoder ticks at 20Hz)
 # ================================================================
-
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
@@ -49,7 +48,8 @@ class MotorBridge(Node):
         self.declare_parameter('max_pwm',         249)
         self.declare_parameter('max_velocity',    0.5)
         self.declare_parameter('cmd_vel_timeout', 0.5)
-
+        self.declare_parameter('publish_tf', True)
+        self.publish_tf = self.get_parameter('publish_tf').value
         self.port         = self.get_parameter('serial_port').value
         self.baud         = self.get_parameter('baud_rate').value
         self.wheel_radius = self.get_parameter('wheel_radius').value
@@ -308,19 +308,20 @@ class MotorBridge(Node):
         self.joint_state_pub.publish(js)
 
         # ── Broadcast TF: odom → base_footprint ─────────────────
-        tf                          = TransformStamped()
-        tf.header.stamp             = now
-        tf.header.frame_id          = 'odom'
-        tf.child_frame_id           = 'base_footprint'
-        tf.transform.translation.x  = x
-        tf.transform.translation.y  = y
-        tf.transform.translation.z  = 0.0
-        tf.transform.rotation.x     = 0.0
-        tf.transform.rotation.y     = 0.0
-        tf.transform.rotation.z     = qz
-        tf.transform.rotation.w     = qw
-
-        self.tf_broadcaster.sendTransform(tf)
+        # ── Broadcast TF: odom → base_footprint ─────────────────
+        if self.publish_tf:
+            tf                          = TransformStamped()
+            tf.header.stamp             = now
+            tf.header.frame_id          = 'odom'
+            tf.child_frame_id           = 'base_footprint'
+            tf.transform.translation.x  = x
+            tf.transform.translation.y  = y
+            tf.transform.translation.z  = 0.0
+            tf.transform.rotation.x     = 0.0
+            tf.transform.rotation.y     = 0.0
+            tf.transform.rotation.z     = qz
+            tf.transform.rotation.w     = qw
+            self.tf_broadcaster.sendTransform(tf)
 
     # ================================================================
     # CLEANUP
