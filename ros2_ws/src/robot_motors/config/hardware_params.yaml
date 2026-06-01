@@ -25,6 +25,10 @@ motor_bridge:
 
     # ── Safety ───────────────────────────────────────────────────
     max_pwm: 249                # 98% of 255 — DBH-1B hardware limit
+    # Stiction breakout: minimum PWM magnitude for any non-zero command.
+    # Tune by experiment: low enough not to overshoot at low DWB speeds, high
+    # enough that the wheels reliably break free of static friction.
+    min_pwm: 70
 
     # ── Watchdog ─────────────────────────────────────────────────
     # Stop motors if no /cmd_vel received within this time

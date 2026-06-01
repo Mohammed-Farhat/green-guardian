@@ -46,6 +46,7 @@ class MotorBridge(Node):
         self.declare_parameter('track_width',     0.341)
         self.declare_parameter('ticks_per_rev',   293)
         self.declare_parameter('max_pwm',         249)
+        self.declare_parameter('min_pwm',         70)   # stiction breakout
         self.declare_parameter('max_velocity',    0.5)
         self.declare_parameter('cmd_vel_timeout', 0.5)
         self.declare_parameter('publish_tf', True)
@@ -56,6 +57,7 @@ class MotorBridge(Node):
         self.track_width  = self.get_parameter('track_width').value
         self.ticks_per_rev= self.get_parameter('ticks_per_rev').value
         self.max_pwm      = self.get_parameter('max_pwm').value
+        self.min_pwm      = self.get_parameter('min_pwm').value
         self.max_velocity = self.get_parameter('max_velocity').value
         self.cmd_timeout  = self.get_parameter('cmd_vel_timeout').value
 
@@ -77,8 +79,17 @@ class MotorBridge(Node):
         self._last_odom_time = None   # wall-clock time of last encoder message
         self._motors_stopped = False  # True once watchdog stops; reset by cmd_vel
 
-        # ── QoS profile ──────────────────────────────────────────
-        # Sensor data QoS — best effort, volatile (standard for odom/cmd_vel)
+        # ── QoS profiles ─────────────────────────────────────────
+        # /odom must be RELIABLE so Nav2 controller_server and EKF can subscribe.
+        # (controller_server logs "incompatible QoS / RELIABILITY_QOS_POLICY" and
+        #  receives ZERO odometry messages when this is BEST_EFFORT.)
+        odom_qos = QoSProfile(
+            depth=10,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE
+        )
+
+        # /cmd_vel — keep BEST_EFFORT; teleop and Nav2 both tolerate this.
         sensor_qos = QoSProfile(
             depth=10,
             reliability=ReliabilityPolicy.BEST_EFFORT,
@@ -87,7 +98,7 @@ class MotorBridge(Node):
 
         # ── Publishers ───────────────────────────────────────────
         self.odom_pub = self.create_publisher(
-            Odometry, '/odom', sensor_qos)
+            Odometry, '/odom', odom_qos)
 
         self.joint_state_pub = self.create_publisher(
             JointState, '/joint_states', 10)
@@ -194,11 +205,24 @@ class MotorBridge(Node):
         pwm_left  = int(v_left  * scale)
         pwm_right = int(v_right * scale)
 
+        # Stiction compensation: motors stall below ~PWM 60-70 on the ground
+        # (gearbox + cable drag). Bump any non-zero command up to min_pwm so
+        # Nav2's small low-speed rotation commands actually move the wheels.
+        pwm_left  = self._apply_stiction(pwm_left)
+        pwm_right = self._apply_stiction(pwm_right)
+
         # Hard clamp — never exceed max_pwm
         pwm_left  = max(-self.max_pwm, min(self.max_pwm, pwm_left))
         pwm_right = max(-self.max_pwm, min(self.max_pwm, pwm_right))
 
         self._send_motor_command(pwm_left, pwm_right)
+
+    def _apply_stiction(self, pwm: int) -> int:
+        if pwm == 0:
+            return 0
+        if abs(pwm) < self.min_pwm:
+            return self.min_pwm if pwm > 0 else -self.min_pwm
+        return pwm
 
     # ================================================================
     # WATCHDOG

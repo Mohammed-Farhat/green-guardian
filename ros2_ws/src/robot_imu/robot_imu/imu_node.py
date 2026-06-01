@@ -32,15 +32,26 @@ class ImuNode(Node):
         self.declare_parameter('i2c_addr',  0x68)
         self.declare_parameter('publish_rate', 50.0)   # Hz
         self.declare_parameter('frame_id',  'imu_link')
+        self.declare_parameter('calibration_samples', 200)  # 4s at 50Hz
 
         bus_num  = self.get_parameter('i2c_bus').value
         self.addr = self.get_parameter('i2c_addr').value
         rate_hz  = self.get_parameter('publish_rate').value
         self.frame_id = self.get_parameter('frame_id').value
+        calib_n  = self.get_parameter('calibration_samples').value
 
         # I2C
         self.bus = smbus2.SMBus(bus_num)
         self._init_chip()
+
+        # Gyro bias calibration — robot must be stationary during startup.
+        # Uncalibrated MPU-6500 gyro bias is 0.01–0.05 rad/s; integrated by the
+        # EKF this looks like the robot slowly rotating even at rest.
+        self.gx_bias = 0.0
+        self.gy_bias = 0.0
+        self.gz_bias = 0.0
+        if calib_n > 0:
+            self._calibrate_gyro(calib_n)
 
         # Publishers
         self.imu_pub  = self.create_publisher(Imu,     '/imu', 10)
@@ -50,6 +61,38 @@ class ImuNode(Node):
         period = 1.0 / rate_hz
         self.create_timer(period, self.timer_cb)
         self.get_logger().info(f'IMU node started at {rate_hz} Hz')
+
+    def _calibrate_gyro(self, n: int):
+        self.get_logger().info(
+            f'Calibrating gyro bias over {n} samples — keep the robot still…'
+        )
+        gx_sum = gy_sum = gz_sum = 0.0
+        used = 0
+        for _ in range(n):
+            try:
+                _, _, _, _, gx, gy, gz = self._read_all()
+            except Exception:
+                time.sleep(0.02)
+                continue
+            gx_sum += gx
+            gy_sum += gy
+            gz_sum += gz
+            used += 1
+            time.sleep(0.02)
+
+        if used == 0:
+            self.get_logger().error('Gyro calibration failed — no samples read')
+            return
+
+        self.gx_bias = gx_sum / used
+        self.gy_bias = gy_sum / used
+        self.gz_bias = gz_sum / used
+        self.get_logger().info(
+            f'Gyro bias (rad/s): '
+            f'x={self.gx_bias / GYRO_SCALE * DEG_TO_RAD:+.5f}  '
+            f'y={self.gy_bias / GYRO_SCALE * DEG_TO_RAD:+.5f}  '
+            f'z={self.gz_bias / GYRO_SCALE * DEG_TO_RAD:+.5f}'
+        )
 
     def _init_chip(self):
         # Clear sleep bit — chip wakes up on power-on in sleep mode
@@ -112,10 +155,10 @@ class ImuNode(Node):
         msg.linear_acceleration_covariance[4] = 0.01
         msg.linear_acceleration_covariance[8] = 0.01
 
-        # Gyroscope — convert to rad/s
-        msg.angular_velocity.x = (gx / GYRO_SCALE) * DEG_TO_RAD
-        msg.angular_velocity.y = (gy / GYRO_SCALE) * DEG_TO_RAD
-        msg.angular_velocity.z = (gz / GYRO_SCALE) * DEG_TO_RAD
+        # Gyroscope — subtract calibrated bias, then convert to rad/s
+        msg.angular_velocity.x = ((gx - self.gx_bias) / GYRO_SCALE) * DEG_TO_RAD
+        msg.angular_velocity.y = ((gy - self.gy_bias) / GYRO_SCALE) * DEG_TO_RAD
+        msg.angular_velocity.z = ((gz - self.gz_bias) / GYRO_SCALE) * DEG_TO_RAD
         msg.angular_velocity_covariance[0] = 0.001
         msg.angular_velocity_covariance[4] = 0.001
         msg.angular_velocity_covariance[8] = 0.001

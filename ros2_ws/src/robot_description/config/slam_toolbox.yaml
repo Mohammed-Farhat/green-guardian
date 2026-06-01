@@ -14,6 +14,9 @@ slam_toolbox:
     scan_topic: /scan
     map_file_name: ""
     map_start_at_dock: true
+    # Keep tight — a high tolerance lets slam_toolbox reuse stale TFs during
+    # a turn, which is the main source of ghost/doubled walls.
+    transform_timeout: 0.2
     # Mode
     mode: mapping
     # Laser range — must match RPLidar A1 hardware limit
@@ -22,8 +25,8 @@ slam_toolbox:
     # Scan matching
     use_scan_matching: true
     use_scan_barycenter: true
-    minimum_travel_distance: 0.1
-    minimum_travel_heading: 0.175
+    minimum_travel_distance: 0.05
+    minimum_travel_heading: 0.0524   # 3° — was 10°; coarse heading updates draw ghost walls during turns
     scan_buffer_size: 10
     scan_buffer_maximum_scan_distance: 5.0
     link_match_minimum_response_fine: 0.1

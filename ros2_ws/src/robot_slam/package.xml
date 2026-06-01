@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>robot_slam</name>
+  <version>0.0.1</version>
+  <description>
+    Green Guardian — SLAM bringup package.
+    Single launch file that starts every driver and slam_toolbox together.
+    Run:  ros2 launch robot_slam slam_bringup.launch.py
+    Save: ros2 run nav2_map_server map_saver_cli -f ~/arena_map
+  </description>
+  <maintainer email="zakariakhatib27@gmail.com">Mohammed Farhat</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Runtime deps: every package whose launch files or nodes we use -->
+  <exec_depend>robot_motors</exec_depend>
+  <exec_depend>robot_imu</exec_depend>
+  <exec_depend>rplidar_ros</exec_depend>
+  <exec_depend>robot_description</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

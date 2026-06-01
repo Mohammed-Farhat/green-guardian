@@ -26,7 +26,9 @@ setup(
         'console_scripts': [
             'system_monitor_node = robot_dashboard.system_monitor_node:main',
             'bin_levels_node     = robot_dashboard.bin_levels_node:main',
-            'odom_node           = robot_dashboard.odom_node:main',
+            # odom_node is intentionally NOT registered as an executable.
+            # It publishes to /odom (same as motor_bridge) and is a placeholder
+            # only — running it alongside the real stack would corrupt odometry.
         ],
     },
 )

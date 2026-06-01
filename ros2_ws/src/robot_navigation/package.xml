@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>robot_navigation</name>
+  <version>0.0.1</version>
+  <description>
+    Green Guardian — Autonomous navigation bringup package.
+    Single launch file that starts every driver and the full Nav2 stack.
+    Run:  ros2 launch robot_navigation nav_bringup.launch.py map:=$HOME/arena_map.yaml
+    Then: set "2D Pose Estimate" in RViz, send a Nav2 Goal.
+  </description>
+  <maintainer email="zakariakhatib27@gmail.com">Mohammed Farhat</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <!-- Runtime deps: every package whose launch files or nodes we use -->
+  <exec_depend>robot_motors</exec_depend>
+  <exec_depend>robot_imu</exec_depend>
+  <exec_depend>rplidar_ros</exec_depend>
+  <exec_depend>robot_description</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>nav2_amcl</exec_depend>
+  <exec_depend>nav2_controller</exec_depend>
+  <exec_depend>nav2_planner</exec_depend>
+  <exec_depend>nav2_behaviors</exec_depend>
+  <exec_depend>nav2_bt_navigator</exec_depend>
+  <exec_depend>nav2_waypoint_follower</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
